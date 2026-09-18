@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>Guitar Theory</title>
+    <meta
+      name="description"
+      content="Chord voicings, fretboard theory and improvisation, fitted to your own hands."
+    />
+
+    <!-- Colours the browser and OS chrome around the app. -->
+    <meta name="theme-color" content="#17161a" />
+
+    <!--
+      iOS ignores most of the web manifest, so the home-screen behaviour has to
+      be asked for here instead. It also shows no install prompt at all - it is
+      Share > Add to Home Screen, which is worth knowing before waiting for a
+      banner that never arrives.
+    -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Theory" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/ui/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "name": "guitar-theory",
+  "version": "0.1.0",
+  "description": "A music theory engine for guitar: chord construction, voicing generation, and hand-aware fingering.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run",
+    "watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "demo": "tsx src/demo.ts",
+    "demo:dict": "tsx src/demo-dictionary.ts",
+    "demo:voice": "tsx src/demo-voiceleading.ts",
+    "demo:bass": "tsx src/demo-bass.ts",
+    "demo:chart": "tsx src/demo-progression.ts"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sharp": "^0.35.4",
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.21",
+    "vite-plugin-pwa": "^0.20.5",
+    "vitest": "^2.1.8"
+  }
+}
