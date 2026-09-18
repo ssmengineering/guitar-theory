@@ -1,18 +1,20 @@
 /**
  * The shell.
  *
- * Two screens so far, both views on the same fretboard: the decoder names what
- * you are holding, and the calibration session teaches the app about your hands
- * so that everything else it says is true of them.
+ * Learn comes first on purpose. The tools all label things in vocabulary the
+ * reading material explains, so the reading is the way in rather than an
+ * appendix.
  */
 
 import { useState } from 'react'
+import Learn from './Learn.js'
 import Decoder from './Decoder.js'
-import Calibration from './Calibration.js'
 import Dictionary from './Dictionary.js'
 import Improv from './Improv.js'
+import Calibration from './Calibration.js'
 
 const SCREENS = [
+  { id: 'learn', label: 'Learn' },
   { id: 'decoder', label: 'Decoder' },
   { id: 'dictionary', label: 'Dictionary' },
   { id: 'improv', label: 'Improv' },
@@ -22,7 +24,8 @@ const SCREENS = [
 type ScreenId = (typeof SCREENS)[number]['id']
 
 export default function App() {
-  const [screen, setScreen] = useState<ScreenId>('decoder')
+  const [screen, setScreen] = useState<ScreenId>('learn')
+  const [lessonId, setLessonId] = useState<string | null>(null)
 
   return (
     <main>
@@ -42,6 +45,13 @@ export default function App() {
         </nav>
       </header>
 
+      {screen === 'learn' ? (
+        <Learn
+          lessonId={lessonId}
+          onSelect={setLessonId}
+          onGo={(target) => setScreen(target)}
+        />
+      ) : null}
       {screen === 'decoder' ? <Decoder /> : null}
       {screen === 'dictionary' ? <Dictionary /> : null}
       {screen === 'improv' ? <Improv /> : null}

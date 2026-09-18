@@ -900,3 +900,256 @@ header {
   border: 1.5px dashed var(--root);
   padding: 0 5px;
 }
+
+/* Learn -------------------------------------------------------------------- */
+
+.lesson-index {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  counter-reset: lesson;
+}
+
+.lesson-index button {
+  font: inherit;
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.lesson-index button:hover {
+  border-color: var(--tension);
+}
+
+.lesson-number {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  min-width: 1.2rem;
+}
+
+.lesson-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lesson-titles strong {
+  font-size: 1rem;
+  font-weight: 620;
+}
+
+.lesson-titles em {
+  font-style: normal;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.lesson {
+  max-width: 68ch;
+}
+
+.lesson-back {
+  font: inherit;
+  font-size: 0.84rem;
+  background: none;
+  border: none;
+  padding: 0 0 12px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.lesson-back:hover {
+  color: var(--ink);
+}
+
+.lesson-header {
+  margin-bottom: 20px;
+}
+
+.lesson-position {
+  margin: 0 0 2px;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.lesson-header h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.015em;
+}
+
+.lesson-text {
+  margin: 0 0 15px;
+  font-size: 1.02rem;
+  line-height: 1.65;
+}
+
+.lesson-text code,
+.lesson-note code,
+.lesson-figure code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--board);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.5px 5px;
+}
+
+.lesson-note {
+  margin: 0 0 18px;
+  padding: 13px 16px;
+  border-left: 3px solid var(--tension);
+  background: var(--surface);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.lesson-figure {
+  margin: 0 0 22px;
+}
+
+.lesson-figure-body {
+  background: var(--board);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 6px 8px 2px;
+  overflow-x: auto;
+}
+
+.lesson-figure figcaption {
+  margin-top: 8px;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.lesson-chords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 4px 12px;
+}
+
+.lesson-chord {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lesson-chord figcaption {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink);
+}
+
+.lesson-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 10px;
+  font-size: 0.9rem;
+}
+
+.lesson-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-soft);
+  font-weight: 650;
+  padding: 4px 10px 8px;
+}
+
+.lesson-table td {
+  padding: 7px 10px;
+  border-top: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.lesson-table tr.odd-pair td {
+  color: var(--tension);
+}
+
+.lesson-table tr.odd-pair em {
+  font-style: normal;
+  opacity: 0.85;
+}
+
+.degrees-cell {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.lesson-try {
+  margin: 0 0 20px;
+  padding: 15px 17px;
+  border: 1px solid var(--tension);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.lesson-try p {
+  margin: 0 0 11px;
+  font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+.lesson-try button {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--tension);
+  cursor: pointer;
+}
+
+.lesson-nav {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.lesson-nav button {
+  font: inherit;
+  font-size: 0.86rem;
+  flex: 1;
+  text-align: left;
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.lesson-nav button:last-child {
+  text-align: right;
+}
+
+.lesson-nav button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
