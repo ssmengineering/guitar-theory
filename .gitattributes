@@ -1,0 +1,4 @@
+# Normalise line endings so the repo does not churn between machines.
+* text=auto eol=lf
+*.png binary
+*.svg text eol=lf
