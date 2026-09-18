@@ -521,6 +521,33 @@ fitted from marked example grips rather than guessed. Open questions:
   load-bearing: the generator reaches for three-string middle barres on some
   string sets, and currently assumes up to four.
 
+## Deploying
+
+The app has no backend — every voicing, fingering and chord name is computed in
+the browser. That makes it a static site, which is why full offline works rather
+than being a compromise: the whole thing is 88 KB gzipped and once cached it
+needs the network never.
+
+```bash
+npm run build     # -> dist/, including the service worker
+```
+
+`vite-plugin-pwa` generates the manifest and service worker. Icons are built
+from `assets/icon.svg` by `node assets/build-icons.mjs` — rerun that after
+changing the source SVG.
+
+Two notes on the icons, both of which bite if ignored. The **maskable** variant
+is full-bleed with no corner radius, because the OS crops it to its own shape
+and any radius of ours shows as a notch inside theirs; its content is scaled to
+84% to stay inside the safe circle. And every icon is **flattened** onto the
+background colour, because iOS refuses transparency on a home-screen icon.
+
+iOS also ignores most of the manifest, so the standalone behaviour is asked for
+with `apple-mobile-web-app-*` meta tags in `index.html` instead. It shows no
+install prompt either — it is Share → Add to Home Screen.
+
+`public/robots.txt` disallows indexing. The site is public but unlisted.
+
 ## Not built yet
 
 The chart editor, and audio: playback, backing tracks, anything that makes a
