@@ -50,7 +50,33 @@ function devSongs(): Plugin {
           return
         }
         const file = path.resolve(root, url.replace(/^\/+/, ''))
-        if (!file.startsWith(root + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+        if (!file.startsWith(root + path.sep)) {
+          next()
+          return
+        }
+        if (req.method === 'PUT') {
+          // Only song.json is writable, and only into an existing package.
+          if (path.basename(file) !== 'song.json' || !fs.existsSync(path.dirname(file))) {
+            res.statusCode = 404
+            res.end()
+            return
+          }
+          const chunks: Buffer[] = []
+          req.on('data', (chunk: Buffer) => chunks.push(chunk))
+          req.on('end', () => {
+            try {
+              const text = Buffer.concat(chunks).toString('utf8')
+              JSON.parse(text)
+              fs.writeFileSync(file, text)
+              res.statusCode = 204
+            } catch {
+              res.statusCode = 400
+            }
+            res.end()
+          })
+          return
+        }
+        if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
           next()
           return
         }

@@ -208,3 +208,25 @@ export async function openDevSong(slug: string): Promise<SongSource> {
 
 export const openSong = (summary: SongSummary): Promise<SongSource> =>
   summary.origin === 'dev' ? openDevSong(summary.slug) : openStoredSong(summary.slug)
+
+/* Saving ----------------------------------------------------------------- */
+
+export const songJsonText = (pkg: SongPackage): string => JSON.stringify(pkg, null, 2) + '\n'
+
+/** Write `song.json` back where the package came from: OPFS, or the dev folder. */
+export async function saveSongJson(summary: SongSummary, pkg: SongPackage): Promise<void> {
+  const text = songJsonText(pkg)
+  if (summary.origin === 'dev') {
+    const response = await fetch(
+      `${DEV_SONGS_URL}/${encodeURIComponent(summary.slug)}/song.json`,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: text },
+    )
+    if (!response.ok) throw new Error(`the dev server would not save song.json (${response.status})`)
+    return
+  }
+  const dir = await (await songsRoot(false)).getDirectoryHandle(summary.slug)
+  const handle = await dir.getFileHandle('song.json', { create: true })
+  const stream = await handle.createWritable()
+  await stream.write(text)
+  await stream.close()
+}

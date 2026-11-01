@@ -559,9 +559,9 @@ figure stops demonstrating its own caption.
 
 The app has no backend — every voicing, fingering and chord name is computed in
 the browser. That makes it a static site, which is why full offline works rather
-than being a compromise: the app is about 95 KB gzipped, the Song screen adds
-50 KB more the first time it opens (the time-stretcher's WASM), and once cached
-it needs the network never.
+than being a compromise: the app is about 100 KB gzipped, opening a song loads
+the audio engine once (45 KB more, mostly the time-stretcher's WASM), and once
+cached it needs the network never.
 
 ```bash
 npm run build     # -> dist/, including the service worker
@@ -606,6 +606,24 @@ on that machine; during development the `songs/` folder shows up alongside.
 The package format and validator live in `src/song/model.ts`, the player in
 `src/audio/engine.ts`, storage in `src/audio/store.ts`.
 
+Under the transport, the chords. Two editors make them possible. **Chart and
+form** takes the key, the beats per bar, the charts in the engine's chart
+syntax (one per section, typed from the chord names the tab writes over the
+first chorus), and the form: sections, each a run of bars that plays one
+chart, cycling when the section is longer than the chart. **Bars** is where
+the downbeats come from: play the record and press B on each one, or take
+every fourth beat guess from where the band comes in, then nudge, split or
+shift what landed late. `src/song/timeline.ts` joins the three into chord
+events in seconds and hands each chord to `analyze`, so the HUD shows the
+name, the number, the numeral, the role and the engine's one-line reason,
+with the fretboard recoloured by the chord's degrees. Edits save themselves
+a second or two later, back to OPFS or to the dev folder.
+
+The player and the open song live in `src/ui/songSession.ts`, outside any
+screen, so the record keeps playing when you switch tabs - and the Improv
+screen has a **follow** switch that takes its chart, key and current chord
+from the song, with Prev and Next moving the record.
+
 One trap: Signalsmith Stretch builds its AudioWorklet by stringifying a class
 into a Blob, so the package is excluded from Vite's dependency pre-bundling and
 the build target stays at ES2022. Any transform that rewrites class fields into
@@ -613,9 +631,9 @@ helpers leaves the worklet calling a helper that is not in its scope.
 
 ## Not built yet
 
-The chart editor and the bar map, so the chords can follow the record; the
-import tool that writes packages; the scan view. The Improv screen is built to
-take a backing track when there is one — the transport already knows about
-beats and tempo.
-
-The plan, and where each stage stands, is in `docs/song-mode-plan.md`.
+The import tool that writes song packages (today they are assembled by hand
+from a separation run), and the scan view that highlights the bar on the
+handwritten page. The engine work the Chet charts ask for - altered
+dominants, colour chords read as diatonic, bass lines through inversions - is
+listed stage by stage in `docs/song-mode-plan.md`, with where each stage
+stands.

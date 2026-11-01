@@ -3,15 +3,31 @@
 Drafted 2026-10-31. This is the working plan for the feature; update it as
 stages land rather than writing a second one.
 
-Status, 2026-10-31: Stage 2 is built and verified in Chrome against the
-hand-assembled Ochi Chornya package (`songs/ochi-chornya/`, git-ignored).
-Verified: load from the dev folder and from OPFS, count-in then play, tempo at
-70 percent advances the song clock at 0.72 of wall time, muting a stem zeroes
-its meter, a 30 s to 33 s loop wraps, and the bass stem's spectral peaks are
-identical at 70 and 100 percent, so pitch is held. Not yet exercised: the
-native folder picker itself (the import code path was driven with an OPFS
-directory handle instead), Safari and the iPad, and listening tests of stretch
-quality at 50 percent. Stages 1, 3 and 4 are not started.
+Status, 2026-10-31: Stages 2 and 3 are built and verified in Chrome against
+the hand-assembled Ochi Chornya package (`songs/ochi-chornya/`, git-ignored).
+
+Stage 2 verified: load from the dev folder and from OPFS, count-in then play,
+tempo at 70 percent advances the song clock at 0.72 of wall time, muting a
+stem zeroes its meter, a 30 s to 33 s loop wraps, and the bass stem's spectral
+peaks are identical at 70 and 100 percent, so pitch is held.
+
+Stage 3 verified: typing a key, a chart and a section in the editor; building
+a 60-bar map from the beat guesses at the band's entry; the HUD reading
+"chorus · bar 4 · beat 4 · D7 · 1(7) · I7 in D minor · secondary dominant"
+as the record plays; a tap on B, and Undo; autosave of `song.json` to the dev
+folder within two seconds; the record continuing across a tab switch; and
+the Improv screen following the song with its own Prev, Next and Pause.
+
+One change from the plan: the player and the open package live in
+`src/ui/songSession.ts`, a store outside any screen, because following from
+the Improv screen needs the record to outlive the Song screen. The pure
+modules are `src/song/barmap.ts` and `src/song/timeline.ts`, tested in
+`tests/timeline.test.ts`.
+
+Not yet exercised: the native folder picker itself (the import code path was
+driven with an OPFS directory handle instead), Safari and the iPad, listening
+tests of stretch quality at 50 percent, and tapping accuracy by ear. The scan
+view (Stage 4) and the import tool (Stage 1) are not started.
 
 ## What it is
 

@@ -1,16 +1,20 @@
 /**
- * The Song screen: a record, its stems on faders, a tempo that bends.
+ * The Song screen: a record, its stems on faders, a tempo that bends, and the
+ * chords going by.
  *
  * A song package is the record split into stems by the import tool. Here the
  * stems play together through one stretcher, so you can pull Chet out of the
  * mix, slow what is left to a tempo you can play at, loop the eight bars that
- * are giving you trouble, and come back up a few percent at a time. The chart
- * and the theory arrive in the next stage; this screen is the instrument they
- * will sit on.
+ * are giving you trouble, and come back up a few percent at a time. Below the
+ * transport the current chord shows with the engine's reading of it, and two
+ * editors let you type the chart and tap the bars that make that possible.
+ *
+ * The player and the open song live in `songSession.ts`, not here, so the
+ * record keeps playing when you switch to the Improv screen to follow it.
  */
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { SongPlayer, type StemState } from '../audio/engine.js'
+import type { StemState } from '../audio/engine.js'
 import {
   deleteStoredSong,
   directoryPickerAvailable,
@@ -18,13 +22,23 @@ import {
   importFromFileList,
   listDevSongs,
   listStoredSongs,
-  openSong,
   opfsAvailable,
   pickDirectory,
-  type SongSource,
+  songJsonText,
   type SongSummary,
 } from '../audio/store.js'
-import { beatInterval, formatTime, snapToBeat, stemLabel } from '../song/model.js'
+import { beatInterval, formatTime, snapToBeat } from '../song/model.js'
+import SongBars from './SongBars.js'
+import SongChart from './SongChart.js'
+import SongHud from './SongHud.js'
+import {
+  closeSong,
+  loadSong,
+  peekPlayer,
+  savePackage,
+  updatePackage,
+  useSongSession,
+} from './songSession.js'
 
 const RATE_MIN = 50
 const RATE_MAX = 110
@@ -40,35 +54,24 @@ const meterWidth = (rms: number): string => {
 }
 
 export default function Song() {
-  const playerRef = useRef<SongPlayer | null>(null)
+  const session = useSongSession()
+  const { source, pkg, timeline } = session
   const fileInput = useRef<HTMLInputElement | null>(null)
 
   const [library, setLibrary] = useState<SongSummary[]>([])
-  const [source, setSource] = useState<SongSource | null>(null)
-  const [stems, setStems] = useState<StemState[]>([])
-  const [levels, setLevels] = useState<Record<string, number>>({})
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
+  const [stems, setStems] = useState<StemState[]>([])
+  const [levels, setLevels] = useState<Record<string, number>>({})
   const [playing, setPlaying] = useState(false)
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [rate, setRate] = useState(100)
-  const [loopA, setLoopA] = useState<number | null>(null)
-  const [loopB, setLoopB] = useState<number | null>(null)
+  const [rate, setRate] = useState(() => Math.round((peekPlayer()?.rate ?? 1) * 100))
+  const [loopA, setLoopA] = useState<number | null>(() => peekPlayer()?.loop?.start ?? null)
+  const [loopB, setLoopB] = useState<number | null>(() => peekPlayer()?.loop?.end ?? null)
   const [countIn, setCountIn] = useState(true)
   const [snap, setSnap] = useState(true)
-
-  const player = () => {
-    if (!playerRef.current) {
-      playerRef.current = new SongPlayer()
-      // A handle for poking at the graph from the console while developing.
-      if (import.meta.env.DEV) {
-        ;(window as unknown as { __songPlayer?: SongPlayer }).__songPlayer = playerRef.current
-      }
-    }
-    return playerRef.current
-  }
 
   const refreshLibrary = useCallback(async () => {
     const [stored, dev] = await Promise.all([listStoredSongs(), listDevSongs()])
@@ -79,12 +82,21 @@ export default function Song() {
     void refreshLibrary()
   }, [refreshLibrary])
 
-  useEffect(() => () => playerRef.current?.dispose(), [])
-
-  // Follow the player's clock, and read the meters a few times a second.
+  // Mirror the player: stems, length, the clock, and the meters.
   useEffect(() => {
-    const p = playerRef.current
-    if (!p || !source) return
+    const p = peekPlayer()
+    if (!p || !source) {
+      setStems([])
+      setDuration(0)
+      setPosition(0)
+      setPlaying(false)
+      return
+    }
+    setStems(p.stemStates())
+    setDuration(p.duration)
+    setPosition(p.position)
+    setPlaying(p.playing)
+    void p.setRate(rate / 100)
     const off = p.onTick(() => {
       setPosition(p.position)
       setPlaying(p.playing)
@@ -97,32 +109,10 @@ export default function Song() {
   }, [source])
 
   const open = async (summary: SongSummary) => {
-    setBusy(`Loading ${summary.title}…`)
     setNotice(null)
-    try {
-      const src = await openSong(summary)
-      const inputs = await Promise.all(
-        src.pkg.stems.map(async (s) => ({
-          id: s.id,
-          label: stemLabel(s),
-          bytes: await src.read(s.file),
-        })),
-      )
-      const p = player()
-      await p.load(inputs)
-      await p.setRate(rate / 100)
-      setSource(src)
-      setStems(p.stemStates())
-      setDuration(p.duration)
-      setPosition(0)
-      setPlaying(false)
-      setLoopA(null)
-      setLoopB(null)
-    } catch (error) {
-      setNotice(message(error))
-    } finally {
-      setBusy(null)
-    }
+    setLoopA(null)
+    setLoopB(null)
+    await loadSong(summary)
   }
 
   const finishImport = async (job: Promise<SongSummary>) => {
@@ -167,51 +157,50 @@ export default function Song() {
       return
     }
     await deleteStoredSong(summary.slug)
-    if (source?.summary.origin === 'opfs' && source.summary.slug === summary.slug) {
-      player().unload()
-      setSource(null)
-      setStems([])
-    }
+    if (source?.summary.origin === 'opfs' && source.summary.slug === summary.slug) closeSong()
     await refreshLibrary()
   }
 
-  const pkg = source?.pkg ?? null
   const interval = pkg ? beatInterval(pkg) : null
 
   const togglePlay = async () => {
-    const p = playerRef.current
+    const p = peekPlayer()
     if (!p || !pkg) return
     if (p.playing) await p.pause()
     else if (countIn && interval) await p.countIn(pkg.beatsPerBar, interval / (rate / 100))
     else await p.play()
   }
 
+  const seek = (time: number) => void peekPlayer()?.seek(time)
+  const readPosition = () => peekPlayer()?.position ?? position
+
   const scrub = (event: ChangeEvent<HTMLInputElement>) => {
     const t = Number(event.target.value)
     setPosition(t)
-    void playerRef.current?.seek(t)
+    seek(t)
   }
 
   const changeRate = (event: ChangeEvent<HTMLInputElement>) => {
     const r = Number(event.target.value)
     setRate(r)
-    void playerRef.current?.setRate(r / 100)
+    void peekPlayer()?.setRate(r / 100)
   }
 
-  const maybeSnap = (t: number) => (snap && pkg ? snapToBeat(t, pkg.beatCandidates) : t)
+  const maybeSnap = (t: number) =>
+    snap && pkg ? snapToBeat(t, pkg.bars.length > 0 ? pkg.bars : pkg.beatCandidates) : t
 
   const applyLoop = (a: number | null, b: number | null) => {
-    void playerRef.current?.setLoop(a !== null && b !== null && b > a ? { start: a, end: b } : null)
+    void peekPlayer()?.setLoop(a !== null && b !== null && b > a ? { start: a, end: b } : null)
   }
 
   const markA = () => {
-    const a = maybeSnap(position)
+    const a = maybeSnap(readPosition())
     setLoopA(a)
     applyLoop(a, loopB)
   }
 
   const markB = () => {
-    const b = maybeSnap(position)
+    const b = maybeSnap(readPosition())
     setLoopB(b)
     applyLoop(loopA, b)
   }
@@ -223,7 +212,7 @@ export default function Song() {
   }
 
   const toggleMute = (id: string) => {
-    const p = playerRef.current
+    const p = peekPlayer()
     const stem = stems.find((s) => s.id === id)
     if (!p || !stem) return
     p.setMuted(id, !stem.muted)
@@ -231,10 +220,30 @@ export default function Song() {
   }
 
   const setGain = (id: string, value: number) => {
-    const p = playerRef.current
+    const p = peekPlayer()
     if (!p) return
     p.setGain(id, value)
     setStems(p.stemStates())
+  }
+
+  const leadIds = pkg ? pkg.stems.filter((s) => s.role === 'lead').map((s) => s.id) : []
+  const leadOut = leadIds.length > 0 && leadIds.every((id) => stems.find((s) => s.id === id)?.muted)
+  const toggleLead = () => {
+    const p = peekPlayer()
+    if (!p) return
+    for (const id of leadIds) p.setMuted(id, !leadOut)
+    setStems(p.stemStates())
+  }
+
+  const download = () => {
+    if (!pkg) return
+    const blob = new Blob([songJsonText(pkg)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'song.json'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   // Space plays and pauses, unless you are in a control.
@@ -251,12 +260,14 @@ export default function Song() {
   })
 
   const loopBroken = loopA !== null && loopB !== null && loopB <= loopA
+  const waiting = session.loading ?? busy
+  const problem = notice ?? session.error
 
   return (
     <>
       <p className="lede">
         The record, split into its players. Take the part out, slow the rest down to where
-        you can play it, loop the hard bars, and creep the tempo back up.
+        you can play it, loop the hard bars, and watch the chords go by.
       </p>
 
       <div className="song-layout">
@@ -279,7 +290,7 @@ export default function Song() {
                         : 'song-pick'
                     }
                     onClick={() => void open(s)}
-                    disabled={busy !== null}
+                    disabled={waiting !== null}
                   >
                     {s.title}
                     <small>
@@ -306,7 +317,7 @@ export default function Song() {
             <button
               type="button"
               onClick={() => void importFolder()}
-              disabled={!opfsAvailable() || busy !== null}
+              disabled={!opfsAvailable() || waiting !== null}
             >
               Import a song folder
             </button>
@@ -324,8 +335,8 @@ export default function Song() {
         </aside>
 
         <section className="panel song-main">
-          {!pkg ? (
-            <p className="empty-panel">{busy ?? 'Pick a song.'}</p>
+          {!pkg || !timeline || !source ? (
+            <p className="empty-panel">{waiting ?? 'Pick a song.'}</p>
           ) : (
             <>
               <div className="song-head">
@@ -358,7 +369,7 @@ export default function Song() {
                 <button type="button" className="play" onClick={() => void togglePlay()}>
                   {playing ? 'Pause' : 'Play'}
                 </button>
-                <button type="button" onClick={() => void playerRef.current?.stop()}>
+                <button type="button" onClick={() => void peekPlayer()?.stop()}>
                   Stop
                 </button>
                 <span className="time">
@@ -378,6 +389,14 @@ export default function Song() {
                 </label>
               </div>
 
+              <SongHud
+                pkg={pkg}
+                timeline={timeline}
+                position={position}
+                duration={duration}
+                onSeek={seek}
+              />
+
               <div className="controls">
                 <label className="checkbox">
                   <input
@@ -393,10 +412,10 @@ export default function Song() {
                   <input
                     type="checkbox"
                     checked={snap}
-                    disabled={pkg.beatCandidates.length === 0}
+                    disabled={pkg.beatCandidates.length === 0 && pkg.bars.length === 0}
                     onChange={(e) => setSnap(e.target.checked)}
                   />
-                  snap loop points to beats
+                  snap loop points to {pkg.bars.length > 0 ? 'bars' : 'beats'}
                 </label>
               </div>
 
@@ -421,7 +440,14 @@ export default function Song() {
                 </span>
               </div>
 
-              <h2>Stems</h2>
+              <div className="hud-head">
+                <h2>Stems</h2>
+                {leadIds.length > 0 ? (
+                  <button type="button" className="chip" onClick={toggleLead}>
+                    {leadOut ? 'Put the part back' : 'Take the part out'}
+                  </button>
+                ) : null}
+              </div>
               <ul className="mixer">
                 {stems.map((s) => {
                   const spec = pkg.stems.find((x) => x.id === s.id)
@@ -460,10 +486,48 @@ export default function Song() {
                   )
                 })}
               </ul>
+
+              <details className="editor">
+                <summary>Chart and form</summary>
+                <SongChart pkg={pkg} timeline={timeline} onChange={updatePackage} />
+              </details>
+              <details className="editor">
+                <summary>Bars</summary>
+                <SongBars
+                  pkg={pkg}
+                  timeline={timeline}
+                  position={position}
+                  duration={duration}
+                  readPosition={readPosition}
+                  onChange={updatePackage}
+                  onSeek={seek}
+                />
+              </details>
+
+              <p className="save-line">
+                {session.saving ? (
+                  'Saving…'
+                ) : session.dirty ? (
+                  <span className="unsaved">Unsaved changes</span>
+                ) : (
+                  'Saved'
+                )}
+                <button type="button" onClick={() => void savePackage()} disabled={!session.dirty}>
+                  Save now
+                </button>
+                <button type="button" onClick={download}>
+                  Download song.json
+                </button>
+                <span>
+                  {source.summary.origin === 'dev'
+                    ? 'writes to the dev songs folder'
+                    : 'kept in this browser'}
+                </span>
+              </p>
             </>
           )}
-          {busy && pkg ? <p className="empty-panel">{busy}</p> : null}
-          {notice ? <p className="notice">{notice}</p> : null}
+          {waiting && pkg ? <p className="empty-panel">{waiting}</p> : null}
+          {problem ? <p className="notice">{problem}</p> : null}
         </section>
       </div>
     </>

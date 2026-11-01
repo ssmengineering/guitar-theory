@@ -12,7 +12,6 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { FENDER, GIBSON, SCALE_LENGTHS, guitar } from '../guitar/instrument.js'
 import { positionMap } from '../guitar/shapes.js'
 import { guideToneLine } from '../guitar/voiceleading.js'
 import { chordName } from '../notes/chord.js'
@@ -22,24 +21,10 @@ import { parseNote } from '../notes/pitch.js'
 import { analyze, parseChart } from '../notes/progression.js'
 import { scaleForChord, toneRoles } from '../notes/scale.js'
 import { toPitchClass } from '../notes/pitch.js'
+import { eventIndexAt, parseKeyText } from '../song/timeline.js'
 import { Fretboard, roleForLabel, type FretboardDot } from './Fretboard.js'
-
-const GUITARS = [
-  { name: 'Fender scale (25.5")', instrument: FENDER },
-  { name: 'Gibson scale (24.75")', instrument: GIBSON },
-  { name: 'Gretsch scale (24.6")', instrument: guitar('Gretsch', SCALE_LENGTHS.gretsch) },
-]
-
-/** Five-fret windows, the way a player thinks about position. */
-const POSITIONS: { label: string; range: [number, number] }[] = [
-  { label: 'Open', range: [0, 4] },
-  { label: '2nd', range: [2, 6] },
-  { label: '5th', range: [5, 9] },
-  { label: '7th', range: [7, 11] },
-  { label: '9th', range: [9, 13] },
-  { label: '12th', range: [12, 16] },
-  { label: 'Whole neck', range: [0, 12] },
-]
+import { GUITARS, POSITIONS } from './options.js'
+import { peekPlayer, useSongSession } from './songSession.js'
 
 type Mode = 'all' | 'chord-tones' | 'guide' | 'target'
 
@@ -64,25 +49,100 @@ export default function Improv() {
   const instrument = GUITARS[guitarIndex]!.instrument
   const fretRange = POSITIONS[positionIndex]!.range
 
+  // Following the Song screen: the chart, the key and the current chord come
+  // from the record that is playing, and the transport drives it.
+  const session = useSongSession()
+  const [follow, setFollow] = useState(false)
+  const songTimeline =
+    session.timeline && session.timeline.events.length > 0 ? session.timeline : null
+  const following = follow && songTimeline !== null
+  const [songPosition, setSongPosition] = useState(0)
+  const [songPlaying, setSongPlaying] = useState(false)
+
+  useEffect(() => {
+    const p = peekPlayer()
+    if (!following || !p) return
+    setSongPosition(p.position)
+    setSongPlaying(p.playing)
+    return p.onTick(() => {
+      setSongPosition(p.position)
+      setSongPlaying(p.playing)
+    })
+  }, [following])
+
+  const eventIndex = following ? eventIndexAt(songTimeline, songPosition) : -1
+  const songEvent = following
+    ? (songTimeline.events[eventIndex] ?? songTimeline.events[0] ?? null)
+    : null
+  const songSection = songEvent ? (songTimeline!.sections[songEvent.sectionIndex] ?? null) : null
+  const effectiveChart =
+    songSection && session.pkg ? (session.pkg.charts[songSection.chartName ?? ''] ?? '') : chartText
+  const effectiveKey = following ? keyName(songTimeline.key) : keyText
+  const beatsPerBar = following && session.pkg ? session.pkg.beatsPerBar : 4
+
   const parsed = useMemo(() => {
     try {
-      const tonic = parseNote(keyText.trim() || 'C')
-      const progression = parseChart(makeKey(tonic), chartText)
+      const k = parseKeyText(effectiveKey.trim() || 'C')
+      const progression = parseChart(k, effectiveChart, beatsPerBar)
       const items = analyze(progression)
       if (items.length === 0) throw new Error('No chords in that chart')
       return { items, key: progression.key, error: null as string | null }
     } catch (error) {
       return { items: [], key: makeKey(parseNote('C')), error: (error as Error).message }
     }
-  }, [chartText, keyText])
+  }, [effectiveChart, effectiveKey, beatsPerBar])
 
   const items = parsed.items
-  const current = items[Math.min(index, Math.max(0, items.length - 1))]
+  const activeIndex = songEvent ? songEvent.chordIndex : index
+  const current = items[Math.min(activeIndex, Math.max(0, items.length - 1))]
+
+  const seekEvent = (i: number) => {
+    const event = songTimeline?.events[i]
+    if (event) void peekPlayer()?.seek(event.time)
+  }
+  const prev = () =>
+    following
+      ? seekEvent(Math.max(0, eventIndex - 1))
+      : setIndex((i) => (i - 1 + items.length) % items.length)
+  const next = () =>
+    following
+      ? seekEvent(Math.min(songTimeline.events.length - 1, eventIndex + 1))
+      : setIndex((i) => (i + 1) % items.length)
+  const togglePlay = () => {
+    if (!following) {
+      setPlaying((p) => !p)
+      return
+    }
+    const p = peekPlayer()
+    if (p) void (p.playing ? p.pause() : p.play())
+  }
+  const isPlaying = following ? songPlaying : playing
+
+  /** Click a chord in the strip: jump the record to it in the cycle we are in, or just show it. */
+  const jumpTo = (i: number) => {
+    if (!following || !songEvent || !songSection) {
+      setIndex(i)
+      return
+    }
+    const cycleStart =
+      songSection.firstBar +
+      Math.floor((songEvent.bar - songSection.firstBar) / songSection.chartBars) *
+        songSection.chartBars
+    const target = songTimeline.events.find(
+      (e) =>
+        e.sectionIndex === songSection.index &&
+        e.chordIndex === i &&
+        e.bar >= cycleStart &&
+        e.bar < cycleStart + songSection.chartBars,
+    )
+    if (target) void peekPlayer()?.seek(target.time)
+  }
 
   // Auto-advance. Each chord holds for its own beats at the chosen tempo, so
   // a bar of two chords goes past twice as fast, the way it would in the tune.
+  // When following the song, the record is the clock.
   useEffect(() => {
-    if (!playing || items.length === 0 || !current) return
+    if (following || !playing || items.length === 0 || !current) return
     const ms = (current.beats * 60_000) / bpm
     const timer = window.setTimeout(() => setIndex((i) => (i + 1) % items.length), ms)
     return () => window.clearTimeout(timer)
@@ -109,7 +169,7 @@ export default function Improv() {
 
   const dots: FretboardDot[] = useMemo(() => {
     if (!current) return []
-    const guideStep = guideLine[index]
+    const guideStep = guideLine[activeIndex]
 
     return cells
       .filter((cell) => {
@@ -152,7 +212,7 @@ export default function Improv() {
           outline: cell.kind !== 'chord-tone' && !isGuideNote,
         }
       })
-  }, [cells, mode, target, current, guideLine, index])
+  }, [cells, mode, target, current, guideLine, activeIndex])
 
   const scale = current ? scaleForChord(current.symbol) : null
   const avoidNotes = roles.filter((r) => r.kind === 'avoid')
@@ -165,17 +225,30 @@ export default function Improv() {
       </p>
 
       <section className="controls">
+        {songTimeline && session.pkg ? (
+          <label className="checkbox">
+            <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} />
+            follow {session.pkg.title}
+          </label>
+        ) : null}
         <label className="chart-input">
           Changes
-          <input value={chartText} onChange={(e) => setChartText(e.target.value)} spellCheck={false} />
+          <input
+            value={effectiveChart}
+            onChange={(e) => setChartText(e.target.value)}
+            spellCheck={false}
+            disabled={following}
+            title={following ? 'The chart comes from the song while following it' : undefined}
+          />
         </label>
         <label>
           Key
           <input
             className="key-input"
-            value={keyText}
+            value={effectiveKey}
             onChange={(e) => setKeyText(e.target.value)}
             spellCheck={false}
+            disabled={following}
           />
         </label>
         <label>
@@ -231,8 +304,8 @@ export default function Improv() {
               <button
                 key={i}
                 type="button"
-                className={i === index ? 'change current' : 'change'}
-                onClick={() => setIndex(i)}
+                className={i === activeIndex ? 'change current' : 'change'}
+                onClick={() => jumpTo(i)}
               >
                 <strong>{chordName(item.symbol)}</strong>
                 <em>{item.nashville}</em>
@@ -245,25 +318,32 @@ export default function Improv() {
           </section>
 
           <section className="transport">
-            <button type="button" onClick={() => setIndex((i) => (i - 1 + items.length) % items.length)}>
+            <button type="button" onClick={prev}>
               ‹ Prev
             </button>
-            <button type="button" className="play" onClick={() => setPlaying((p) => !p)}>
-              {playing ? '❚❚ Pause' : '▶ Play'}
+            <button type="button" className="play" onClick={togglePlay}>
+              {isPlaying ? '❚❚ Pause' : '▶ Play'}
             </button>
-            <button type="button" onClick={() => setIndex((i) => (i + 1) % items.length)}>
+            <button type="button" onClick={next}>
               Next ›
             </button>
-            <label className="tempo">
-              {bpm} bpm
-              <input
-                type="range"
-                min={40}
-                max={160}
-                value={bpm}
-                onChange={(e) => setBpm(Number(e.target.value))}
-              />
-            </label>
+            {following ? (
+              <span className="tempo">
+                {songEvent ? `bar ${songEvent.bar}` : 'waiting for bar 1'} · tempo is on the Song
+                screen
+              </span>
+            ) : (
+              <label className="tempo">
+                {bpm} bpm
+                <input
+                  type="range"
+                  min={40}
+                  max={160}
+                  value={bpm}
+                  onChange={(e) => setBpm(Number(e.target.value))}
+                />
+              </label>
+            )}
           </section>
 
           {current ? (
