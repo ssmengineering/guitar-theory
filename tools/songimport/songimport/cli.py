@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .perf import prefer_performance
 from .pipeline import DEFAULT_LEAD, ImportOptions, run_import
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -140,7 +141,13 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
+    # The helper separates inside this very process, in a thread, with its
+    # console window usually behind the browser; say up front that this is
+    # not background work, or Windows parks it on the efficient cores.
+    note = prefer_performance()
     if argv[:1] == ["serve"]:
+        if note:
+            print(f"songimport: {note}")
         return serve_main(argv[1:])
     parser = build_parser()
     args = parser.parse_args(argv)

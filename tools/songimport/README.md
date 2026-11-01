@@ -17,6 +17,11 @@ The first time on a computer, the start script builds the import environment
 itself before starting (it needs a Python 3 on the PATH and takes about ten
 minutes); after that it starts straight away.
 
+Leave the helper's window where it is; the tool tells Windows at startup that
+it is not background work, so a separation behind the browser runs on the
+fast cores (without that, Windows 11 parks it on the efficient cores and it
+takes three times as long).
+
 The helper reads `serve.json` beside this README for the two library
 folders (`serve.example.json` shows the shape), serves the packages in the
 repo's `songs` folder, and serves the built app from `dist`. After pulling

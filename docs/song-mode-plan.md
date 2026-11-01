@@ -93,6 +93,15 @@ process started from Explorer. The whole toolchain now lives under
 venv whose Python has gone, and the start script runs the setup itself when
 the tool is missing or broken instead of showing the launcher's message.
 
+The first import from the user's own double-click ran three times slower
+than the same import from a Claude shell: Windows 11 had decided the
+helper, a console window behind the browser, was background work and ran
+its separation on the four efficient cores of the hybrid chip, with the
+eight performance cores idle. Opting the process out of power throttling
+(`perf.py`, one `SetProcessInformation` call at the tool's entry) moved the
+work onto every core at once; the tool now does this at startup, for the
+helper and for the command line alike.
+
 Not yet exercised: the native folder picker itself (the import code path was
 driven with an OPFS directory handle instead), Safari and the iPad, listening
 tests of stretch quality at 50 percent, tapping accuracy by ear, the `-Gpu`

@@ -23,6 +23,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from .perf import prefer_performance
+
 import numpy as np
 import soundfile as sf
 
@@ -389,6 +391,11 @@ def run_import(options: ImportOptions, log: Log = print) -> ImportResult:
     package = options.out_dir / slug
     package.mkdir(parents=True, exist_ok=True)
     step(f"{title} - {artist or 'unknown artist'} ({year or 'no year'}) -> {package}")
+    # Said again here, in the import's own log, so a slow run can be told
+    # apart from one that Windows has parked on the efficient cores.
+    performance = prefer_performance()
+    if performance:
+        step(performance)
 
     existing: dict | None = None
     song_json_path = package / "song.json"
