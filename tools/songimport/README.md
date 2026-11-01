@@ -4,6 +4,24 @@ A record and its tab in, a song package out. The package is what the app's
 Song screen plays: `song.json`, one MP3 stem per instrument separated from the
 record, and the tab's pages as PNGs.
 
+## The easy way: the helper
+
+Double-click `Start Guitar Theory.cmd` (make a Desktop shortcut to it). It
+starts a small server on this machine only, opens the app in your browser,
+and the Song screen gains **Import from your library**: your albums, each
+track paired with its tab by year, title and track number, and an Import
+button. The import runs in the background with its progress on screen, and
+the song opens when it is done. Leave the window open while you play.
+
+The helper reads `serve.json` beside this README for the two library
+folders (`serve.example.json` shows the shape), serves the packages in the
+repo's `songs` folder, and serves the built app from `dist`. After pulling
+new app code, run `npm run build` so the helper serves the new version; the
+start script builds it once if it is missing. `songimport serve --help`
+lists the flags for other folders and ports.
+
+## The command line
+
 ## Setup, once
 
 ```powershell

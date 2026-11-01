@@ -116,10 +116,9 @@ def slugify(artist: str | None, title: str) -> str:
 
 def title_from_filename(path: Path) -> str:
     """`03OchiChornya(LesYeuxNoirs).MP3` is not a title, but it is better than nothing."""
-    stem = re.sub(r"^\d+[\s._-]*", "", path.stem)
-    stem = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", stem)
-    stem = stem.replace("_", " ").strip()
-    return stem or path.stem
+    from .library import parse_track_file
+
+    return parse_track_file(path.name)[1] or path.stem
 
 
 def plan_stems(

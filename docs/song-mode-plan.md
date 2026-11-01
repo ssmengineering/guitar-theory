@@ -63,6 +63,23 @@ a section can carry its own key, so a bridge that modulates is analysed in
 its key on the HUD, in the Improv follow, and in the timeline. Left for later:
 chord-melody readings, which need the melody note and not just the symbol.
 
+Importing from the app, same day (the first Stage 6 item, pulled forward
+because the terminal step was the thing in the way): `songimport serve` is a
+local helper that serves the built app, lists the record and tab libraries
+paired by year, title and track number (`library.py`, one-to-one, tested
+against the real folder names), runs imports in the background with their
+progress, and serves the packages on the same routes the dev server uses.
+The Song screen gains an Import panel; `Start Guitar Theory.cmd` starts the
+helper and opens the browser, so daily use needs no terminal and no `npm run
+dev`. The Vite dev server proxies `/api` to the helper so both can run
+together. Verified end to end: Minute Waltz imported from the panel in under
+five minutes, its tab paired automatically, and opened on its own when done;
+being a solo-guitar track, it came through with one stem, the bass, drums and
+vocal stems dropped as silent, which is the Stage 6 case for a generated
+rhythm section. Under the helper the service worker is not registered (its
+script fetch fails on this server, and offline caching means nothing on a
+local machine), so the public site keeps the worker and the helper does not.
+
 Not yet exercised: the native folder picker itself (the import code path was
 driven with an OPFS directory handle instead), Safari and the iPad, listening
 tests of stretch quality at 50 percent, tapping accuracy by ear, the `-Gpu`

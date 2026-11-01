@@ -97,9 +97,19 @@ async function writePackage(
 
 /* Importing ------------------------------------------------------------- */
 
+const NOT_A_PACKAGE =
+  'That folder has no song.json, so it is not a song package. Run the import tool on the ' +
+  'record and its tab first, then pick the folder it writes: the one with song.json, stems ' +
+  'and scan inside.'
+
 /** From the folder picker. Copies `song.json` and every file it names. */
 export async function importFromDirectory(dir: FileSystemDirectoryHandle): Promise<SongSummary> {
-  const jsonFile = await (await dir.getFileHandle('song.json')).getFile()
+  let jsonFile: File
+  try {
+    jsonFile = await (await dir.getFileHandle('song.json')).getFile()
+  } catch {
+    throw new SongPackageError(NOT_A_PACKAGE)
+  }
   const pkg = parseSongPackage(JSON.parse(await jsonFile.text()))
   const files = await Promise.all(
     packageFiles(pkg).map(async (path) => {
@@ -124,7 +134,7 @@ export async function importFromFileList(list: FileList | File[]): Promise<SongS
   const stripTop = (p: string) => p.split('/').slice(1).join('/')
   const byPath = new Map(files.map((f) => [stripTop(f.webkitRelativePath) || f.name, f]))
   const json = byPath.get('song.json')
-  if (!json) throw new SongPackageError('that folder has no song.json')
+  if (!json) throw new SongPackageError(NOT_A_PACKAGE)
   const pkg = parseSongPackage(JSON.parse(await json.text()))
   const needed = packageFiles(pkg).map((path) => {
     const blob = byPath.get(path)
@@ -178,11 +188,15 @@ export async function deleteStoredSong(slug: string): Promise<void> {
 
 const DEV_SONGS_URL = '/dev-songs'
 
+/**
+ * Packages served from a folder on this machine: by the Vite dev server in
+ * development, or by the local helper (`songimport serve`) any time. A static
+ * host has no such route and answers with HTML or a 404, which reads as none.
+ */
 export async function listDevSongs(): Promise<SongSummary[]> {
-  if (!import.meta.env.DEV) return []
   try {
-    const response = await fetch(`${DEV_SONGS_URL}/index.json`)
-    if (!response.ok) return []
+    const response = await fetch(`${DEV_SONGS_URL}/index.json`, { cache: 'no-store' })
+    if (!response.ok || !(response.headers.get('content-type') ?? '').includes('json')) return []
     const list = (await response.json()) as { slug: string; title: string; artist?: string }[]
     return list.map((s) => ({ ...s, origin: 'dev' as const }))
   } catch {

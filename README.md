@@ -622,12 +622,17 @@ songs/ochi-chornya/          git-ignored; the dev server serves it at /dev-songs
 ```
 
 `tools/songimport` writes these. Once set up with `tools\songimport\setup.ps1`,
-one command takes the MP3 and the PDF and does the rest: decodes, separates
-with Demucs, drops the stems that are silent, writes MP3 stems, guesses the
-beats from the rhythm section, renders the tab pages, writes `song.json`. A
-re-run keeps the key, charts, sections and bars typed in the app. Its own
-README has the options; about seven minutes a song on the CPU, seconds with
-the `-Gpu` setup.
+`Start Guitar Theory.cmd` in that folder runs a helper on this machine that
+serves the app and puts **Import from your library** on the Song screen: the
+albums from the music folder, each track paired with its tab from the tabs
+folder by year, title and track number, and one button. The import runs in
+the background with its progress on screen, and the song opens when it lands.
+Underneath, one command does the same from a terminal: decode, separate with
+Demucs, drop the stems that are silent, write MP3 stems, guess the beats from
+the rhythm section, render the tab pages, write `song.json`. A re-run keeps
+the key, charts, sections and bars typed in the app. About seven minutes a
+song on the CPU, seconds with the `-Gpu` setup. The tool's own README has the
+options.
 
 Nothing copyrighted ships with the site. In the browser, **Import a song
 folder** copies a package into the Origin Private File System, where it stays

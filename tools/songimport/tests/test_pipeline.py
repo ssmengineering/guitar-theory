@@ -27,7 +27,7 @@ class Slugs(unittest.TestCase):
         self.assertEqual(slugify("Édith", "Café"), "edith-cafe")
 
     def test_title_from_filename(self):
-        self.assertEqual(title_from_filename(Path("03OchiChornya(LesYeuxNoirs).MP3")), "Ochi Chornya(Les Yeux Noirs)")
+        self.assertEqual(title_from_filename(Path("03OchiChornya(LesYeuxNoirs).MP3")), "Ochi Chornya (Les Yeux Noirs)")
         self.assertEqual(title_from_filename(Path("07 Little Rock Getaway.mp3")), "Little Rock Getaway")
         self.assertEqual(title_from_filename(Path("tenderly.flac")), "tenderly")
 

@@ -1718,3 +1718,78 @@ header {
 .form-table input.key-cell {
   width: 4.5rem;
 }
+
+/* Song: importing from the library ------------------------------------- */
+
+.import-hint {
+  margin: 0;
+  padding-bottom: 8px;
+}
+.import-tracks {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 6px;
+}
+.import-tracks button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 2px 8px;
+  text-align: left;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: var(--board);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.import-tracks button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.import-tracks li.current button {
+  border-color: var(--tension);
+  box-shadow: inset 0 0 0 1px var(--tension);
+}
+.import-number {
+  font-family: var(--mono);
+  color: var(--ink-soft);
+  grid-row: 1 / span 2;
+}
+.import-tracks small {
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+}
+.import-form p {
+  margin: 4px 0 10px;
+  font-size: 0.9rem;
+}
+.import-go {
+  font-size: 0.9rem;
+  color: var(--ink);
+  border-color: var(--tension);
+  padding: 7px 16px;
+}
+.import-go:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.import-log {
+  margin: 0;
+  max-height: 14rem;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  background: var(--board);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  color: var(--ink);
+}

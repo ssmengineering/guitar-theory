@@ -31,6 +31,7 @@ import { beatInterval, formatTime, snapToBeat } from '../song/model.js'
 import SongBars from './SongBars.js'
 import SongChart from './SongChart.js'
 import SongHud from './SongHud.js'
+import SongImport from './SongImport.js'
 import SongScan from './SongScan.js'
 import {
   closeSong,
@@ -295,7 +296,7 @@ export default function Song() {
                   >
                     {s.title}
                     <small>
-                      {[s.artist, s.origin === 'dev' ? `dev folder · ${s.slug}` : null]
+                      {[s.artist, s.origin === 'dev' ? `on this computer · ${s.slug}` : null]
                         .filter(Boolean)
                         .join(' · ')}
                     </small>
@@ -544,6 +545,18 @@ export default function Song() {
           )}
           {waiting && pkg ? <p className="empty-panel">{waiting}</p> : null}
           {problem ? <p className="notice">{problem}</p> : null}
+
+          <details className="editor" open={!pkg}>
+            <summary>Import from your library</summary>
+            <SongImport
+              onImported={(slug) => {
+                void (async () => {
+                  await refreshLibrary()
+                  await open({ slug, title: slug, origin: 'dev' })
+                })()
+              }}
+            />
+          </details>
         </section>
       </div>
     </>

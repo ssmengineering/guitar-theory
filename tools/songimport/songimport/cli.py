@@ -3,11 +3,13 @@
     songimport "track.mp3" --pdf "tab.pdf"
     songimport "track.mp3" --model htdemucs_6s --beats 3 --key Dm
     songimport --check
+    songimport serve            the local helper: the app plus importing from the browser
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -16,6 +18,41 @@ from .pipeline import DEFAULT_LEAD, ImportOptions, run_import
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUT = REPO_ROOT / "songs"
+TOOL_ROOT = Path(__file__).resolve().parents[1]
+SERVE_CONFIG = TOOL_ROOT / "serve.json"
+
+
+def serve_main(argv: list[str]) -> int:
+    """`songimport serve`: defaults for the library folders come from serve.json beside the tool."""
+    from .server import serve
+
+    config: dict = {}
+    if SERVE_CONFIG.is_file():
+        try:
+            config = json.loads(SERVE_CONFIG.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            print(f"songimport: {SERVE_CONFIG} does not parse; ignoring it", file=sys.stderr)
+
+    parser = argparse.ArgumentParser(
+        prog="songimport serve",
+        description="Serve the app and import songs from the browser, on this machine only.",
+    )
+    parser.add_argument("--port", type=int, default=int(config.get("port", 8765)))
+    parser.add_argument("--music", type=Path, default=config.get("music"), help="folder of album folders")
+    parser.add_argument("--tabs", type=Path, default=config.get("tabs"), help="folder of tab folders")
+    parser.add_argument("--songs", type=Path, default=Path(config.get("songs", DEFAULT_OUT)))
+    parser.add_argument("--app", type=Path, default=Path(config.get("app", REPO_ROOT / "dist")))
+    parser.add_argument("--no-open", action="store_true", help="do not open the browser")
+    args = parser.parse_args(argv)
+    serve(
+        music=Path(args.music) if args.music else None,
+        tabs=Path(args.tabs) if args.tabs else None,
+        songs=args.songs,
+        app=args.app,
+        port=args.port,
+        open_browser=not args.no_open,
+    )
+    return 0
 
 
 def check() -> int:
@@ -101,6 +138,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv[:1] == ["serve"]:
+        return serve_main(argv[1:])
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.check:

@@ -140,6 +140,9 @@ export default defineConfig({
   optimizeDeps: { exclude: ['signalsmith-stretch'] },
   build: { target: 'es2022' },
   server: {
+    // With `songimport serve` running beside the dev server, the Import panel
+    // works here too; without it the one probe fails quietly.
+    proxy: { '/api': { target: 'http://127.0.0.1:8765', changeOrigin: false } },
     watch: {
       // The import tool's Python environment and model cache hold thousands of
       // files the app never imports, and the watcher once died on one of them
