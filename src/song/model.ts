@@ -30,6 +30,8 @@ export interface SongSection {
   bars: [number, number]
   /** Key into `charts`. */
   chart?: string
+  /** The key this section is in, when a bridge leaves the song's key. */
+  key?: string
 }
 
 export interface ScanBox {
@@ -131,6 +133,8 @@ function parseSections(x: unknown): SongSection[] {
     const section: SongSection = { name: s.name, bars: [bars[0], bars[1]] }
     const chart = optionalString(s.chart, `section "${s.name}" chart`)
     if (chart !== undefined) section.chart = chart
+    const sectionKey = optionalString(s.key, `section "${s.name}" key`)
+    if (sectionKey !== undefined && sectionKey.trim() !== '') section.key = sectionKey.trim()
     return section
   })
 }

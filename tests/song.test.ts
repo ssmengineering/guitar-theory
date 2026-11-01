@@ -38,7 +38,7 @@ describe('parseSongPackage', () => {
       tempoBpm: 96,
       bars: [0, 1.875, 3.75],
       beatCandidates: [0, 0.625, 1.25],
-      sections: [{ name: 'chorus', bars: [1, 8], chart: 'chorus' }],
+      sections: [{ name: 'chorus', bars: [1, 8], chart: 'chorus', key: 'G' }],
       charts: { chorus: '| Dm | A7 |' },
       scan: { pages: [{ image: 'scan/p1.png', boxes: [{ bar: 3, x: 1, y: 2, w: 3, h: 4 }] }] },
     })
@@ -46,6 +46,7 @@ describe('parseSongPackage', () => {
     expect(pkg.beatsPerBar).toBe(3)
     expect(pkg.tempoBpm).toBe(96)
     expect(pkg.sections[0]!.bars).toEqual([1, 8])
+    expect(pkg.sections[0]!.key).toBe('G')
     expect(pkg.scan!.pages[0]!.boxes[0]!.bars).toEqual([3])
   })
 

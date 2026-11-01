@@ -180,8 +180,12 @@ export default function SongChart({ pkg, timeline, onChange }: Props) {
       </div>
 
       <h3>Form</h3>
+      <p className="hint">
+        A section is a run of bars that plays one chart; a longer section cycles its chart. A
+        section that leaves the song's key, a bridge that modulates, can carry its own.
+      </p>
       {pkg.sections.length === 0 ? (
-        <p className="empty-panel">No sections yet. A section is a run of bars that plays one chart.</p>
+        <p className="empty-panel">No sections yet.</p>
       ) : (
         <table className="form-table">
           <thead>
@@ -190,6 +194,7 @@ export default function SongChart({ pkg, timeline, onChange }: Props) {
               <th>First bar</th>
               <th>Last bar</th>
               <th>Chart</th>
+              <th>Key</th>
               <th />
             </tr>
           </thead>
@@ -236,6 +241,25 @@ export default function SongChart({ pkg, timeline, onChange }: Props) {
                       </option>
                     ))}
                   </select>
+                </td>
+                <td>
+                  <input
+                    className="key-cell"
+                    value={s.key ?? ''}
+                    placeholder={pkg.key ?? 'C'}
+                    spellCheck={false}
+                    title="Leave empty for the song's key; a bridge that modulates gets its own"
+                    onChange={(e) =>
+                      onChange((p) => ({
+                        ...p,
+                        sections: p.sections.map((x, j) => {
+                          if (j !== i) return x
+                          const { key: _drop, ...rest } = x
+                          return e.target.value.trim() === '' ? rest : { ...rest, key: e.target.value }
+                        }),
+                      }))
+                    }
+                  />
                 </td>
                 <td>
                   <button type="button" className="song-remove" onClick={() => removeSection(i)} title="Remove this section">

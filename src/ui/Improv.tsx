@@ -77,7 +77,7 @@ export default function Improv() {
   const songSection = songEvent ? (songTimeline!.sections[songEvent.sectionIndex] ?? null) : null
   const effectiveChart =
     songSection && session.pkg ? (session.pkg.charts[songSection.chartName ?? ''] ?? '') : chartText
-  const effectiveKey = following ? keyName(songTimeline.key) : keyText
+  const effectiveKey = following ? keyName(songSection?.key ?? songTimeline.key) : keyText
   const beatsPerBar = following && session.pkg ? session.pkg.beatsPerBar : 4
 
   const parsed = useMemo(() => {

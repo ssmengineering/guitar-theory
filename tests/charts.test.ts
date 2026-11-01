@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { chordName, enharmonicAliases, parseChord } from '../src/notes/chord.js'
 import { key } from '../src/notes/key.js'
 import { parseNote } from '../src/notes/pitch.js'
-import { analyze, parseChart } from '../src/notes/progression.js'
+import { analyze, findCadences, parseChart } from '../src/notes/progression.js'
 
 const C = key(parseNote('C'))
 const D = key(parseNote('D'))
@@ -150,5 +150,43 @@ describe('passing chords and sidesteps', () => {
     const items = analyze(parseChart(D, '| Dsus4 | D |'))
     expect(items[0]!.role).toBe('diatonic')
     expect(items[0]!.explanation).toContain('held up to the 4th')
+  })
+})
+
+describe('slash chords and bass lines', () => {
+  it('names the inversion under a slash chord', () => {
+    const items = analyze(parseChart(D, '| D | D/F# | G | G/B |'))
+    expect(items[1]!.role).toBe('diatonic')
+    expect(items[1]!.explanation).toContain('3rd in the bass')
+    expect(items[1]!.explanation).toContain('first inversion')
+  })
+
+  it('says when the bass note is not in the chord', () => {
+    const items = analyze(parseChart(D, '| D | Em/D |'))
+    expect(items[1]!.explanation).toContain('not in the chord')
+  })
+
+  it('hears a bass line walking down through inversions', () => {
+    const items = analyze(parseChart(D, '| D | D/C# | Bm | D/A | G | D/F# | Em | A7 |'))
+    expect(items[0]!.explanation).toContain('walking down')
+    expect(items[0]!.explanation).toContain('D, C#, B, A, G, F#, E')
+    expect(items[6]!.explanation).toContain('walking down')
+    expect(items[7]!.explanation).not.toContain('walking')
+  })
+})
+
+describe('more cadences', () => {
+  it('finds the turnaround, plain and ragtime', () => {
+    const plain = findCadences(analyze(parseChart(C, '| C | Am | Dm7 | G7 |')))
+    expect(plain[0]!.kind).toBe('turnaround')
+    expect(plain[0]!.explanation).toContain('I-vi-ii-V')
+    const ragtime = findCadences(analyze(parseChart(C, '| C | A7 | D7 | G7 |')))
+    expect(ragtime[0]!.kind).toBe('turnaround')
+    expect(ragtime[0]!.explanation).toContain('ragtime')
+  })
+
+  it('finds the backdoor, the minor plagal, and a half cadence', () => {
+    const cadences = findCadences(analyze(parseChart(C, '| Bb7 | C | Fm | C | G7 |')))
+    expect(cadences.map((c) => c.kind)).toEqual(['backdoor', 'minor-plagal', 'half'])
   })
 })

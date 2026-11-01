@@ -161,7 +161,8 @@ export default function SongHud({ pkg, timeline, position, duration, onSeek }: P
             <div className="hud-chord">
               <strong>{chordName(current.analysis.symbol)}</strong>
               <span className="hud-numbers">
-                {current.analysis.nashville} · {current.analysis.roman} in {keyName(timeline.key)}
+                {current.analysis.nashville} · {current.analysis.roman} in{' '}
+                {keyName(section?.key ?? timeline.key)}
               </span>
             </div>
             <p className="hud-why">

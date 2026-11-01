@@ -53,9 +53,15 @@ between its neighbours in the bass is a passing chord; a chord that is nothing
 in the key gets its enharmonic other name (Abm7b5 is Bm6); and a secondary
 dominant or tritone sub is told whether the chart went where it points. The
 whole Shadow Waltz chart and the Dark Eyes intro now read correctly;
-`tests/charts.test.ts` holds those charts as the engine's test cases. Left for
-later clusters: slash-chord bass lines over diatonic chords, a longer look at
-cadences in 3/4, and chord-melody readings.
+`tests/charts.test.ts` holds those charts as the engine's test cases.
+
+Second cluster, same day: a slash chord is read as its inversion or as a bass
+note outside the chord; three or more chords whose bass notes step one way
+are named as the bass line they are; `findCadences` knows the turnaround
+(plain and ragtime), the backdoor, the minor plagal and the half cadence; and
+a section can carry its own key, so a bridge that modulates is analysed in
+its key on the HUD, in the Improv follow, and in the timeline. Left for later:
+chord-melody readings, which need the melody note and not just the symbol.
 
 Not yet exercised: the native folder picker itself (the import code path was
 driven with an OPFS directory handle instead), Safari and the iPad, listening

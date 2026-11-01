@@ -465,13 +465,78 @@ function explainInContext(items: ChordAnalysis[], k: Key): void {
         item.explanation += ` The same notes as ${chordName(alias)} (${romanNumeral(alias, k)}).`
       }
     }
+
+    // A slash chord: which chord tone is underneath, or that none is.
+    const bass = item.symbol.bass
+    if (bass) {
+      const rootPc = toPitchClass(item.symbol.root)
+      const inChord = item.symbol.intervals.find(
+        (x) => (rootPc + x.semitones) % 12 === toPitchClass(bass),
+      )
+      if (!inChord) {
+        item.explanation += ` Over ${noteName(bass)}, a bass note that is not in the chord: a pedal or a passing tone underneath.`
+      } else if (inChord.degree !== 1) {
+        const inversion = INVERSION_NAMES[inChord.degree]
+        item.explanation += ` With its ${BASS_ORDINALS[inChord.degree] ?? toneWord(inChord)} in the bass${
+          inversion ? ` (${inversion})` : ''
+        }.`
+      }
+    }
   })
+
+  describeBassLines(items)
+}
+
+const BASS_ORDINALS: Record<number, string> = { 3: '3rd', 5: '5th', 6: '6th', 7: '7th', 9: '9th' }
+const INVERSION_NAMES: Record<number, string> = {
+  3: 'first inversion',
+  5: 'second inversion',
+  7: 'third inversion',
+}
+
+/**
+ * Three or more chords whose bass notes step in one direction are a bass
+ * line, and the player should know they are playing one - it is why those
+ * chords were chosen. A passing chord already says what its bass is doing.
+ */
+function describeBassLines(items: ChordAnalysis[]): void {
+  const basses = items.map((item) => toPitchClass(bassOf(item.symbol)))
+  const signedStep = (from: number, to: number) => ((to - from + 18) % 12) - 6
+  let start = 0
+  while (start < items.length) {
+    let end = start
+    let direction = 0
+    while (end + 1 < items.length) {
+      const step = signedStep(basses[end]!, basses[end + 1]!)
+      const sign = Math.abs(step) === 1 || Math.abs(step) === 2 ? Math.sign(step) : 0
+      if (sign === 0 || (direction !== 0 && sign !== direction)) break
+      direction = sign
+      end += 1
+    }
+    if (end - start + 1 >= 3) {
+      const names = items.slice(start, end + 1).map((item) => noteName(bassOf(item.symbol)))
+      const sentence = ` The bass is walking ${direction < 0 ? 'down' : 'up'} here: ${names.join(', ')}.`
+      for (const item of items.slice(start, end + 1)) {
+        if (item.role !== 'passing') item.explanation += sentence
+      }
+    }
+    start = end > start ? end : start + 1
+  }
 }
 
 /* Cadences ----------------------------------------------------------------- */
 
 export interface Cadence {
-  kind: 'ii-V-I' | 'ii-V' | 'V-I' | 'IV-I' | 'deceptive'
+  kind:
+    | 'ii-V-I'
+    | 'ii-V'
+    | 'V-I'
+    | 'IV-I'
+    | 'deceptive'
+    | 'turnaround'
+    | 'backdoor'
+    | 'minor-plagal'
+    | 'half'
   /** Indices into the analysis array. */
   at: number[]
   explanation: string
@@ -479,7 +544,8 @@ export interface Cadence {
 
 /**
  * The shapes that turn a list of chords into a sentence.
- * ii-V-I first, because once you can see it you see it everywhere.
+ * ii-V-I first, because once you can see it you see it everywhere; the
+ * turnaround before it, because it contains one.
  */
 export function findCadences(analysis: ChordAnalysis[]): Cadence[] {
   const found: Cadence[] = []
@@ -488,6 +554,44 @@ export function findCadences(analysis: ChordAnalysis[]): Cadence[] {
     at(i) !== undefined && at(i)!.degree === degree && at(i)!.alteration === 0
 
   for (let i = 0; i < analysis.length; i++) {
+    if (isDegree(i, 1) && isDegree(i + 1, 6) && isDegree(i + 2, 2) && isDegree(i + 3, 5)) {
+      const ragtime = isDominant(at(i + 1)!.symbol) && isDominant(at(i + 2)!.symbol)
+      found.push({
+        kind: 'turnaround',
+        at: [i, i + 1, i + 2, i + 3],
+        explanation: ragtime
+          ? 'I-VI7-II7-V7 - the ragtime turnaround: every chord a dominant pointing at the ' +
+            'next, round the circle of fifths and back to the top. Chet lives here.'
+          : 'I-vi-ii-V - the turnaround: four chords that bring a phrase back to the top.',
+      })
+      i += 3
+      continue
+    }
+    if (
+      at(i) !== undefined &&
+      at(i)!.degree === 7 &&
+      at(i)!.alteration === -1 &&
+      isDominant(at(i)!.symbol) &&
+      isDegree(i + 1, 1)
+    ) {
+      found.push({
+        kind: 'backdoor',
+        at: [i, i + 1],
+        explanation:
+          'bVII7-I - the backdoor: a dominant a whole step below the key sliding home from the flat side.',
+      })
+      i += 1
+      continue
+    }
+    if (isDegree(i, 4) && isMinorish(at(i)!.symbol) && isDegree(i + 1, 1)) {
+      found.push({
+        kind: 'minor-plagal',
+        at: [i, i + 1],
+        explanation: 'iv-I - the minor plagal cadence: the amen, with the four chord darkened first.',
+      })
+      i += 1
+      continue
+    }
     if (isDegree(i, 2) && isDegree(i + 1, 5)) {
       if (isDegree(i + 2, 1)) {
         found.push({
@@ -526,6 +630,16 @@ export function findCadences(analysis: ChordAnalysis[]): Cadence[] {
       })
       i += 1
     }
+  }
+
+  // A chart that stops on the V has not finished its sentence.
+  const last = analysis.length - 1
+  if (last >= 1 && isDegree(last, 5)) {
+    found.push({
+      kind: 'half',
+      at: [last],
+      explanation: 'ending on the V - a half cadence: the phrase is left open, waiting to go round again',
+    })
   }
   return found
 }

@@ -192,6 +192,22 @@ describe('buildTimeline', () => {
     expect(keyName(t.key)).toBe('C')
   })
 
+  it('lets a section carry its own key', () => {
+    const pkg = waltz()
+    pkg.sections = [
+      { name: 'A', bars: [1, 2], chart: 'a' },
+      { name: 'bridge', bars: [3, 4], chart: 'b', key: 'G' },
+    ]
+    pkg.charts = { a: '| D | A7 |', b: '| D | G |' }
+    const t = buildTimeline(pkg)
+    expect(t.events.map((e) => e.analysis.nashville)).toEqual(['1', '5(7)', '5', '1'])
+    expect(keyName(t.sections[1]!.key)).toBe('G')
+    expect(keyName(t.key)).toBe('D')
+    pkg.sections[1]!.key = 'H'
+    const problems = buildTimeline(pkg).problems
+    expect(problems.some((p) => p.where === 'bridge' && p.message.includes('key'))).toBe(true)
+  })
+
   it('finds the chord sounding at a time, and the bar and beat', () => {
     const t = buildTimeline(waltz())
     expect(eventIndexAt(t, -0.5)).toBe(-1)

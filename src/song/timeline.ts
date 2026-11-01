@@ -67,6 +67,8 @@ export interface SectionSpan {
   firstBar: number
   lastBar: number
   chartName: string | undefined
+  /** The key the section's chart is read in: its own, or the song's. */
+  key: Key
   /** When the section starts, if its first bar has a time. */
   startTime: number | null
   chartBars: number
@@ -122,12 +124,21 @@ export function buildTimeline(pkg: SongPackage, songDuration?: number): Timeline
     barsNeeded = Math.max(barsNeeded, last)
     const chartName = section.chart
     const text = chartName === undefined ? undefined : pkg.charts[chartName]
+    let sectionKey = key
+    if (section.key !== undefined) {
+      try {
+        sectionKey = parseKeyText(section.key)
+      } catch (error) {
+        problems.push({ where: section.name, message: `its key: ${(error as Error).message}` })
+      }
+    }
     const span: SectionSpan = {
       index: sectionIndex,
       name: section.name,
       firstBar: first,
       lastBar: last,
       chartName,
+      key: sectionKey,
       startTime: bars[first - 1] ?? null,
       chartBars: 0,
       items: [],
@@ -141,7 +152,7 @@ export function buildTimeline(pkg: SongPackage, songDuration?: number): Timeline
     let items: ChordAnalysis[]
     let chartBars: number
     try {
-      const progression = parseChart(key, text, pkg.beatsPerBar)
+      const progression = parseChart(sectionKey, text, pkg.beatsPerBar)
       items = analyze(progression)
       chartBars = progression.bars.length
     } catch (error) {

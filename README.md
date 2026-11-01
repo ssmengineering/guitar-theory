@@ -388,9 +388,16 @@ in the key but sits a half step between its neighbours in the bass is a
 passing chord, however it is spelled - `A9 - Abm7b5 - G6 - D` is a bass line
 walking down - and a chord that is nothing in the key gets its other name when
 it has one: Abm7b5 is Bm6. A dominant aimed somewhere is told whether the chart
-went there next. `findCadences()` picks out ii-V-I, ii-V, V-I, IV-I and the
-deceptive V-vi — once you can see ii-V-I you see it everywhere, which is most
-of the reason to look.
+went there next. A slash chord is read as the inversion it is - "with its 3rd
+in the bass (first inversion)" - or as a bass note that is not in the chord,
+and three or more chords whose bass notes step one way are called the bass
+line they are: `D - D/C# - Bm - D/A - G - D/F# - Em` is "the bass walking
+down: D, C#, B, A, G, F#, E". `findCadences()` picks out ii-V-I, ii-V, V-I,
+IV-I, the deceptive V-vi, the turnaround I-vi-ii-V (and its ragtime form with
+every chord a dominant, which is where Chet lives), the backdoor bVII7-I, the
+minor plagal iv-I, and a chart that ends on the V, which is a half cadence
+waiting to go round again — once you can see ii-V-I you see it everywhere,
+which is most of the reason to look.
 
 `parseChord()` reads the spellings handwritten charts use as well as the tidy
 ones: `A9 5+`, `E7+`, `C7(b9)`, `Am7-5`, `C2`, `G69`, `Em(maj7)`.
@@ -632,7 +639,8 @@ Under the transport, the chords. Two editors make them possible. **Chart and
 form** takes the key, the beats per bar, the charts in the engine's chart
 syntax (one per section, typed from the chord names the tab writes over the
 first chorus), and the form: sections, each a run of bars that plays one
-chart, cycling when the section is longer than the chart. **Bars** is where
+chart, cycling when the section is longer than the chart, and carrying its
+own key when a bridge modulates. **Bars** is where
 the downbeats come from: play the record and press B on each one, or take
 every fourth beat guess from where the band comes in, then nudge, split or
 shift what landed late. `src/song/timeline.ts` joins the three into chord
