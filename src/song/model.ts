@@ -244,6 +244,7 @@ export function songSlug(pkg: Pick<SongPackage, 'title' | 'artist'>): string {
   const slug = `${pkg.artist ?? ''} ${pkg.title}`
     .toLowerCase()
     .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
   return slug || 'song'

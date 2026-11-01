@@ -1,0 +1,26 @@
+[project]
+name = "songimport"
+version = "0.1.0"
+description = "Turn a record and its tab into a song package for the Guitar Theory app."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  # The versions that worked together on 2026-10-31. Loosen one at a time.
+  "audio-separator[cpu]==0.48.0",
+  "audioread==3.1.0",
+  "imageio-ffmpeg==0.7.0",
+  "librosa==1.0.0",
+  "numpy==2.5.4",
+  "soundfile==0.14.0",
+  "mutagen>=1.47",
+  "pymupdf>=1.26",
+]
+
+[project.scripts]
+songimport = "songimport.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["songimport*"]

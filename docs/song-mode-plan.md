@@ -24,10 +24,21 @@ the Improv screen needs the record to outlive the Song screen. The pure
 modules are `src/song/barmap.ts` and `src/song/timeline.ts`, tested in
 `tests/timeline.test.ts`.
 
+Stage 1 verified: `tools/songimport/setup.ps1` built the environment from
+nothing on this machine (uv's managed Python 3.12, the pinned packages, the
+bundled ffmpeg), and `songimport` turned the Ochi Chornya MP3 and the Dark
+Eyes PDF into a package in 7.3 minutes on the CPU: guitar, bass and drums
+stems with the vocal stem dropped as silent, 294 beat guesses taken from the
+rhythm section, four tab pages, `song.json`. A `--skip-separation` re-run
+regenerated the pages in seconds. Nine unit tests cover the pure parts: the
+slug (the same rule as the app), stem choice, kept fields, `song.json`.
+
 Not yet exercised: the native folder picker itself (the import code path was
 driven with an OPFS directory handle instead), Safari and the iPad, listening
-tests of stretch quality at 50 percent, and tapping accuracy by ear. The scan
-view (Stage 4) and the import tool (Stage 1) are not started.
+tests of stretch quality at 50 percent, tapping accuracy by ear, the `-Gpu`
+setup, `htdemucs_6s` through the tool, and a re-import over a package with
+typed charts (the kept-fields logic is tested, not run). The scan view
+(Stage 4) is not started.
 
 ## What it is
 
@@ -162,8 +173,12 @@ nothing on this machine.
 - Render PDF pages at about 110 dpi with pymupdf.
 - First-guess beats with librosa `beat_track`; store as candidates only.
 - Read tags for title, artist, year; write `song.json`.
-- Later: a CUDA build of PyTorch (the RTX 3060 turns minutes into seconds), and
-  a stronger beat tracker such as Beat This!.
+- Later: a CUDA build of PyTorch (the RTX 3060 turns minutes into seconds), a
+  stronger beat tracker such as Beat This!, and finding the tab by itself: the
+  music and tab libraries are parallel folders with matching track numbers
+  (`1955_ChetAtkinsInThreeDimensions/03OchiChornya...MP3` beside
+  `02 (1955) Chet Atkins In 3 Dimensions LPM-1197/03 Dark Eyes.pdf`), so a
+  whole album could be imported in one command.
 
 Estimate: 2 to 3 sessions.
 

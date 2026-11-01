@@ -87,6 +87,8 @@ describe('package helpers', () => {
       'chet-atkins-ochi-chornya-les-yeux-noirs',
     )
     expect(songSlug({ title: '***' })).toBe('song')
+    // The import tool makes the same slug, accents dropped rather than turned into hyphens.
+    expect(songSlug({ artist: 'Édith', title: 'Café' })).toBe('edith-cafe')
   })
 
   it('labels a stem from its id when no label is given', () => {

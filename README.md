@@ -598,7 +598,16 @@ songs/ochi-chornya/          git-ignored; the dev server serves it at /dev-songs
   song.json                  format, title, stems, beatsPerBar, tempoBpm,
                              beatCandidates (guesses), bars (truth), sections, charts
   stems/guitar.mp3 ...
+  scan/p1.png ...            the tab's pages
 ```
+
+`tools/songimport` writes these. Once set up with `tools\songimport\setup.ps1`,
+one command takes the MP3 and the PDF and does the rest: decodes, separates
+with Demucs, drops the stems that are silent, writes MP3 stems, guesses the
+beats from the rhythm section, renders the tab pages, writes `song.json`. A
+re-run keeps the key, charts, sections and bars typed in the app. Its own
+README has the options; about seven minutes a song on the CPU, seconds with
+the `-Gpu` setup.
 
 Nothing copyrighted ships with the site. In the browser, **Import a song
 folder** copies a package into the Origin Private File System, where it stays
@@ -631,9 +640,8 @@ helpers leaves the worklet calling a helper that is not in its scope.
 
 ## Not built yet
 
-The import tool that writes song packages (today they are assembled by hand
-from a separation run), and the scan view that highlights the bar on the
-handwritten page. The engine work the Chet charts ask for - altered
+The scan view that highlights the bar on the handwritten page; the pages are
+already in the package. The engine work the Chet charts ask for - altered
 dominants, colour chords read as diatonic, bass lines through inversions - is
 listed stage by stage in `docs/song-mode-plan.md`, with where each stage
 stands.

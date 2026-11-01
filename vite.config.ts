@@ -139,5 +139,13 @@ export default defineConfig({
   // written and the build keeps native class fields.
   optimizeDeps: { exclude: ['signalsmith-stretch'] },
   build: { target: 'es2022' },
+  server: {
+    watch: {
+      // The import tool's Python environment and model cache hold thousands of
+      // files the app never imports, and the watcher once died on one of them
+      // mid-copy. Songs are read through the dev route, not the module graph.
+      ignored: ['**/tools/**/.venv/**', '**/tools/**/.models/**', '**/songs/**'],
+    },
+  },
   test: { globals: true, include: ['tests/**/*.test.ts'] },
 })

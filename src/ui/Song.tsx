@@ -294,7 +294,7 @@ export default function Song() {
                   >
                     {s.title}
                     <small>
-                      {[s.artist, s.origin === 'dev' ? 'dev folder' : null]
+                      {[s.artist, s.origin === 'dev' ? `dev folder · ${s.slug}` : null]
                         .filter(Boolean)
                         .join(' · ')}
                     </small>

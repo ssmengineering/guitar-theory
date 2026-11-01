@@ -6,3 +6,7 @@ dev-dist/
 .DS_Store
 .vercel
 songs/
+tools/songimport/.venv/
+tools/songimport/.models/
+__pycache__/
+*.egg-info/
