@@ -6,18 +6,23 @@
  * appendix.
  */
 
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import Learn from './Learn.js'
 import Decoder from './Decoder.js'
 import Dictionary from './Dictionary.js'
 import Improv from './Improv.js'
 import Calibration from './Calibration.js'
 
+// The Song screen carries the time-stretcher's WASM, so it loads on first use
+// rather than on every visit; the service worker still caches it for offline.
+const Song = lazy(() => import('./Song.js'))
+
 const SCREENS = [
   { id: 'learn', label: 'Learn' },
   { id: 'decoder', label: 'Decoder' },
   { id: 'dictionary', label: 'Dictionary' },
   { id: 'improv', label: 'Improv' },
+  { id: 'song', label: 'Song' },
   { id: 'calibration', label: 'Calibration' },
 ] as const
 
@@ -55,6 +60,11 @@ export default function App() {
       {screen === 'decoder' ? <Decoder /> : null}
       {screen === 'dictionary' ? <Dictionary /> : null}
       {screen === 'improv' ? <Improv /> : null}
+      {screen === 'song' ? (
+        <Suspense fallback={<p className="empty-panel">Loading the player…</p>}>
+          <Song />
+        </Suspense>
+      ) : null}
       {screen === 'calibration' ? <Calibration /> : null}
     </main>
   )

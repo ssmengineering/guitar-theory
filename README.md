@@ -559,8 +559,9 @@ figure stops demonstrating its own caption.
 
 The app has no backend — every voicing, fingering and chord name is computed in
 the browser. That makes it a static site, which is why full offline works rather
-than being a compromise: the whole thing is 88 KB gzipped and once cached it
-needs the network never.
+than being a compromise: the app is about 95 KB gzipped, the Song screen adds
+50 KB more the first time it opens (the time-stretcher's WASM), and once cached
+it needs the network never.
 
 ```bash
 npm run build     # -> dist/, including the service worker
@@ -582,8 +583,39 @@ install prompt either — it is Share → Add to Home Screen.
 
 `public/robots.txt` disallows indexing. The site is public but unlisted.
 
+## The Song screen
+
+A record, split into its players, on faders. A *song package* is a folder the
+import tool writes: `song.json` plus one stem per instrument, separated from
+the record itself, so the backing is the real band. The screen plays every
+stem through a single time-stretcher (one channel per stem, so nothing can
+drift), with a fader and meter per stem, a tempo slider from 50% to 110% that
+holds the pitch, an A/B loop that snaps to the beat guesses in the package, and
+a count-in.
+
+```
+songs/ochi-chornya/          git-ignored; the dev server serves it at /dev-songs/
+  song.json                  format, title, stems, beatsPerBar, tempoBpm,
+                             beatCandidates (guesses), bars (truth), sections, charts
+  stems/guitar.mp3 ...
+```
+
+Nothing copyrighted ships with the site. In the browser, **Import a song
+folder** copies a package into the Origin Private File System, where it stays
+on that machine; during development the `songs/` folder shows up alongside.
+The package format and validator live in `src/song/model.ts`, the player in
+`src/audio/engine.ts`, storage in `src/audio/store.ts`.
+
+One trap: Signalsmith Stretch builds its AudioWorklet by stringifying a class
+into a Blob, so the package is excluded from Vite's dependency pre-bundling and
+the build target stays at ES2022. Any transform that rewrites class fields into
+helpers leaves the worklet calling a helper that is not in its scope.
+
 ## Not built yet
 
-The chart editor, and audio: playback, backing tracks, anything that makes a
-sound. The Improv screen is built to take a backing track when there is one —
-the transport already knows about beats and tempo.
+The chart editor and the bar map, so the chords can follow the record; the
+import tool that writes packages; the scan view. The Improv screen is built to
+take a backing track when there is one — the transport already knows about
+beats and tempo.
+
+The plan, and where each stage stands, is in `docs/song-mode-plan.md`.
