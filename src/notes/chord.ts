@@ -63,15 +63,23 @@ export const QUALITIES: ChordQuality[] = [
   q('mMaj7', 'mMaj7', 4, [P1, m3, P5, M7]),
   q('7sus4', '7sus4', 2, [P1, P4, P5, m7]),
   q('add9', 'add9', 2, [P1, M3, P5, M9]),
+  q('madd9', 'madd9', 2, [P1, m3, P5, M9]),
   q('6/9', '6/9', 3, [P1, M3, P5, M6, M9]),
   q('9', '9', 2, [P1, M3, P5, m7, M9]),
   q('maj9', 'maj9', 2, [P1, M3, P5, M7, M9]),
   q('m9', 'm9', 2, [P1, m3, P5, m7, M9]),
+  q('9sus4', '9sus4', 3, [P1, P4, P5, m7, M9]),
+  // The altered dominants. A Chet chart writes these as "A9 5+" or "E7+".
+  q('7b5', '7b5', 4, [P1, M3, d5, m7]),
+  q('7#5', '7#5', 4, [P1, M3, A5, m7]),
+  q('9#5', '9#5', 4, [P1, M3, A5, m7, M9]),
   q('7b9', '7b9', 4, [P1, M3, P5, m7, b9]),
   q('7#9', '7#9', 4, [P1, M3, P5, m7, s9]),
   q('7#11', '7#11', 4, [P1, M3, P5, m7, s11]),
   q('7b13', '7b13', 4, [P1, M3, P5, m7, b13]),
+  q('7alt', '7alt', 5, [P1, M3, A5, m7, b9, s9]),
   q('maj7#11', 'maj7#11', 4, [P1, M3, P5, M7, s11]),
+  q('11', '11', 4, [P1, M3, P5, m7, M9, P11]),
   q('m11', 'm11', 4, [P1, m3, P5, m7, M9, P11]),
   q('13', '13', 3, [P1, M3, P5, m7, M9, M13]),
   q('maj13', 'maj13', 4, [P1, M3, P5, M7, M9, M13]),
@@ -122,6 +130,41 @@ export function chordName(symbol: ChordSymbol): string {
     : `(${symbol.intervals.map(degreeLabel).join(' ')})`
   const slash = symbol.bass ? `/${noteName(symbol.bass)}` : ''
   return noteName(symbol.root) + suffix + slash
+}
+
+/** The pitch classes a chord symbol sounds, root included. */
+export const chordPitchClasses = (symbol: ChordSymbol): Set<number> => {
+  const root = (toPitchClassOf(symbol.root) + 12) % 12
+  return pcSet(symbol.intervals.map((i) => root + intervalPitchClass(i)))
+}
+
+const toPitchClassOf = (n: SpelledNote): number =>
+  (([0, 2, 4, 5, 7, 9, 11][n.letter]! + n.alter) % 12 + 12) % 12
+
+/**
+ * The other names for the same notes. C6 is Am7 from the other end; Abm7b5 is
+ * Bm6; a diminished seventh has four names. Plainer qualities come first, and
+ * anything more exotic than a four-note chord is left out, because an alias
+ * nobody would write is not an explanation.
+ */
+export function enharmonicAliases(
+  symbol: ChordSymbol,
+  spell: (pitchClass: number) => SpelledNote = (pc) => spellPitchClass(pc),
+  maxComplexity = 3,
+): ChordSymbol[] {
+  const target = chordPitchClasses(symbol)
+  const own = `${toPitchClassOf(symbol.root)}:${symbol.quality ?? ''}`
+  const found: { symbol: ChordSymbol; complexity: number }[] = []
+  for (let root = 0; root < 12; root++) {
+    for (const quality of QUALITIES) {
+      if (quality.complexity > maxComplexity) continue
+      if (`${root}:${quality.name}` === own) continue
+      const set = pcSet(quality.intervals.map((i) => root + intervalPitchClass(i)))
+      if (set.size !== target.size || ![...set].every((pc) => target.has(pc))) continue
+      found.push({ symbol: chord(spell(root), quality.name), complexity: quality.complexity })
+    }
+  }
+  return found.sort((a, b) => a.complexity - b.complexity).map((f) => f.symbol)
 }
 
 /* Identification --------------------------------------------------------- */
@@ -325,20 +368,37 @@ export function describeCandidate(candidate: ChordCandidate): string {
 const SUFFIX_ALIASES: Record<string, string> = {
   '': 'maj', M: 'maj', maj: 'maj', ma: 'maj',
   m: 'min', min: 'min', '-': 'min',
-  M7: 'maj7', ma7: 'maj7', j7: 'maj7', t7: 'maj7',
-  min7: 'm7', '-7': 'm7',
+  M7: 'maj7', ma7: 'maj7', j7: 'maj7', t7: 'maj7', 'Δ': 'maj7', 'Δ7': 'maj7',
+  M9: 'maj9', ma9: 'maj9',
+  min7: 'm7', '-7': 'm7', min9: 'm9', '-9': 'm9', min6: 'm6', '-6': 'm6',
+  mM7: 'mMaj7', mmaj7: 'mMaj7', minmaj7: 'mMaj7', '-maj7': 'mMaj7',
   dom7: '7',
-  o: 'dim', '°': 'dim', o7: 'dim7', '°7': 'dim7',
-  '+': 'aug', 'aug7': '7b13',
-  'ø': 'm7b5', 'ø7': 'm7b5', 'm7-5': 'm7b5', 'min7b5': 'm7b5', 'half-dim': 'm7b5',
-  sus: 'sus4',
-  add2: 'add9',
+  o: 'dim', '°': 'dim', 'º': 'dim', o7: 'dim7', '°7': 'dim7', 'º7': 'dim7',
+  '+': 'aug', aug7: '7#5', '7+': '7#5', '+7': '7#5', '9+': '9#5', '+9': '9#5',
+  'ø': 'm7b5', 'ø7': 'm7b5', 'm7-5': 'm7b5', min7b5: 'm7b5', 'half-dim': 'm7b5',
+  sus: 'sus4', '7sus': '7sus4', '9sus': '9sus4',
+  add2: 'add9', '2': 'add9', madd2: 'madd9',
+  '69': '6/9', '6add9': '6/9',
 }
 
 const ROOT_PATTERN = /^([A-Ga-g])(bb|b|##|#|x)?(.*)$/
 
+/**
+ * Older and handwritten charts spell alterations with plus and minus signs,
+ * sometimes after the number ("A9 5+"), and put extensions in brackets
+ * ("C7(b9)"). Bring those to the registry's spelling before looking them up.
+ */
+function normaliseSuffix(suffix: string): string {
+  let s = suffix.replace(/\s+/g, '').replace(/[()]/g, '')
+  if (s in SUFFIX_ALIASES) return s
+  s = s
+    .replace(/([+-])(13|11|9|5)(?!\d)/g, (_, sign: string, n: string) => (sign === '+' ? '#' : 'b') + n)
+    .replace(/(13|11|9|5)([+-])(?!\d)/g, (_, n: string, sign: string) => (sign === '+' ? '#' : 'b') + n)
+  return s
+}
+
 function qualityFromSuffix(suffix: string): string {
-  const trimmed = suffix.trim()
+  const trimmed = normaliseSuffix(suffix.trim())
   const alias = SUFFIX_ALIASES[trimmed]
   if (alias) return alias
   const exact = QUALITIES.find((q) => q.suffix === trimmed)

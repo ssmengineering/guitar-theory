@@ -27,6 +27,7 @@ const ROLE_WORDS: Record<string, string> = {
   'secondary-dominant': 'secondary dominant',
   'tritone-sub': 'tritone substitute',
   borrowed: 'borrowed',
+  passing: 'passing chord',
   chromatic: 'chromatic',
 }
 

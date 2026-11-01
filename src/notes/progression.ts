@@ -16,10 +16,14 @@ import {
   QUALITIES,
   chord,
   chordName,
+  chordPitchClasses,
+  enharmonicAliases,
   parseChord,
   qualityByName,
+  spellPitchClass,
   type ChordSymbol,
 } from './chord.js'
+import type { Interval } from './interval.js'
 import {
   alterationSign,
   degreeOf,
@@ -27,10 +31,11 @@ import {
   diatonicQualities,
   key,
   keyName,
+  keyNotes,
   romanFor,
   type Key,
 } from './key.js'
-import { noteName, toPitchClass } from './pitch.js'
+import { noteName, toPitchClass, type SpelledNote } from './pitch.js'
 
 export interface ChartChord {
   symbol: ChordSymbol
@@ -115,6 +120,8 @@ export type HarmonicRole =
   | 'secondary-dominant'
   | 'tritone-sub'
   | 'borrowed'
+  /** A chord that is there for its bass note: a half step between its neighbours. */
+  | 'passing'
   | 'chromatic'
 
 export interface ChordAnalysis {
@@ -165,6 +172,76 @@ function romanForDegreeIn(k: Key, degree: number): string {
   return quality === 'min' || quality === 'dim' ? base.toLowerCase() : base
 }
 
+/* The words for colour tones ---------------------------------------------- */
+
+const NATURAL_SEMITONES: Record<number, number> = {
+  1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9, 7: 11, 9: 14, 11: 17, 13: 21,
+}
+const ORDINALS: Record<number, string> = {
+  2: '2nd', 4: '4th', 6: '6th', 7: '7th', 9: '9th', 11: '11th', 13: '13th',
+}
+
+/** "6th", "flat 9th", "sharp 11th", "major 7th" - a chord tone said out loud. */
+function toneWord(interval: Interval): string {
+  const ordinal = ORDINALS[interval.degree] ?? `${interval.degree}th`
+  const natural = NATURAL_SEMITONES[interval.degree]
+  if (natural === undefined) return ordinal
+  const diff = interval.semitones - natural
+  if (interval.degree === 7) {
+    return diff === 0 ? 'major 7th' : diff === -1 ? '7th' : diff === -2 ? 'diminished 7th' : ordinal
+  }
+  return (diff < 0 ? 'flat ' : diff > 0 ? 'sharp ' : '') + ordinal
+}
+
+const listWords = (words: string[]): string =>
+  words.length <= 1
+    ? (words[0] ?? '')
+    : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
+
+const hasDegree = (symbol: ChordSymbol, degree: number) =>
+  symbol.intervals.some((x) => x.degree === degree)
+
+/**
+ * The chord stripped to what the numeral names: "IV", "V7", "ii7". The colour
+ * tones are described separately, so "IV6" reads as "the IV with the 6th added".
+ */
+function baseRomanOf(symbol: ChordSymbol, k: Key): string {
+  const { degree, alteration } = degreeOf(k, symbol.root)
+  const base = romanFor(degree)
+  const cased = isMinorish(symbol) ? base.toLowerCase() : base
+  const seventh = symbol.intervals.find((x) => x.degree === 7)
+  const tail = !seventh ? '' : seventh.semitones === 11 ? 'maj7' : '7'
+  return alterationSign(alteration) + cased + tail
+}
+
+/** How an in-key chord differs from the plain triad or seventh: the colour. */
+function colourPhrase(symbol: ChordSymbol): string | null {
+  const suspended = !hasDegree(symbol, 3) && (hasDegree(symbol, 2) || hasDegree(symbol, 4))
+  const colours = symbol.intervals.filter((x) => [6, 9, 11, 13].includes(x.degree))
+  const parts: string[] = []
+  if (suspended) {
+    parts.push(`its 3rd held ${hasDegree(symbol, 4) ? 'up to the 4th' : 'down to the 2nd'}`)
+  }
+  if (colours.length > 0) {
+    const words = listWords(colours.map((x) => `the ${toneWord(x)}`))
+    parts.push(hasDegree(symbol, 7) ? `${words} on top` : `${words} added`)
+  }
+  return parts.length === 0 ? null : `with ${parts.join(' and ')}`
+}
+
+/** The pitch classes a key offers, with the raised 7th a minor key leans on for its dominant. */
+function toleratedPitchClasses(k: Key): Set<number> {
+  const set = new Set(keyNotes(k).map(toPitchClass))
+  if (k.mode === 'minor') set.add((toPitchClass(k.tonic) + 11) % 12)
+  return set
+}
+
+/** Spell a pitch class the way this key would, falling back to flats. */
+const spellerFor =
+  (k: Key) =>
+  (pitchClass: number): SpelledNote =>
+    keyNotes(k).find((n) => toPitchClass(n) === pitchClass) ?? spellPitchClass(pitchClass)
+
 function classify(
   symbol: ChordSymbol,
   k: Key,
@@ -173,16 +250,81 @@ function classify(
 ): Pick<ChordAnalysis, 'role' | 'targets' | 'explanation'> {
   const roman = romanNumeral(symbol, k)
   const quality = symbol.quality ?? 'maj'
+  const tones = chordPitchClasses(symbol)
+  const inKey = new Set(keyNotes(k).map(toPitchClass))
+  const tolerated = toleratedPitchClasses(k)
 
-  // Straight out of the key: right root, and the quality the key builds there.
   if (alteration === 0) {
+    // The quality the key builds on that degree: nothing to explain.
     const triads = diatonicQualities(k, false)
     const sevenths = diatonicQualities(k, true)
     if (quality === triads[degree - 1] || quality === sevenths[degree - 1]) {
+      return { role: 'diatonic', explanation: `${roman} - straight out of ${keyName(k)}` }
+    }
+
+    // The dominant of a minor key: V7 with the scale's 7th raised to pull home.
+    const raised = (toPitchClass(k.tonic) + 11) % 12
+    if (k.mode === 'minor' && degree === 5 && isDominant(symbol) && tones.has(raised)) {
+      const outside = [...tones].filter((pc) => !tolerated.has(pc))
+      if (outside.length === 0) {
+        return {
+          role: 'diatonic',
+          explanation:
+            `${roman} - the dominant of ${keyName(k)}. Its 3rd, ${noteName(degreeRoot(k, 7, 1))}, ` +
+            `is the key's 7th raised a half step so the chord pulls home: harmonic minor at work.`,
+        }
+      }
+    }
+
+    // The four chord as a dominant seventh: the blues colour, its 7th from the parallel minor.
+    if (k.mode === 'major' && degree === 4 && isDominant(symbol)) {
+      const seventh = spellerFor(parallelOf(k))((toPitchClass(symbol.root) + 10) % 12)
+      return {
+        role: 'borrowed',
+        explanation:
+          `${roman} - the four chord as a dominant seventh, the blues colour. Its 7th, ` +
+          `${noteName(seventh)}, is the flat 3rd of ${keyName(k)}, borrowed from ${keyName(parallelOf(k))}.`,
+      }
+    }
+
+    // Every note in the key: a colour on a chord the key already has.
+    if ([...tones].every((pc) => inKey.has(pc))) {
+      const colour = colourPhrase(symbol)
       return {
         role: 'diatonic',
-        explanation: `${roman} - straight out of ${keyName(k)}`,
+        explanation: colour
+          ? `${roman} - the ${baseRomanOf(symbol, k)} ${colour}; every note of it is in ${keyName(k)}`
+          : `${roman} - every note of it is in ${keyName(k)}`,
       }
+    }
+
+    // The dominant with altered colour is still the dominant, not a dominant of itself.
+    if (degree === 5 && isDominant(symbol)) {
+      const parallel = parallelOf(k)
+      const parallelPcs = new Set(keyNotes(parallel).map(toPitchClass))
+      const outside = symbol.intervals.filter(
+        (x) => !tolerated.has((toPitchClass(symbol.root) + x.semitones) % 12),
+      )
+      const words = listWords(outside.map((x) => `its ${toneWord(x)}`))
+      const notes = listWords(
+        outside.map((x) => noteName(spellerFor(parallel)((toPitchClass(symbol.root) + x.semitones) % 12))),
+      )
+      const borrowed = outside.every((x) =>
+        parallelPcs.has((toPitchClass(symbol.root) + x.semitones) % 12),
+      )
+      return borrowed
+        ? {
+            role: 'borrowed',
+            explanation:
+              `${roman} - still the dominant, with ${words} altered: ${notes} ` +
+              `${outside.length > 1 ? 'come' : 'comes'} from ${keyName(parallel)}, the darker side of the key.`,
+          }
+        : {
+            role: 'chromatic',
+            explanation:
+              `${roman} - still the dominant, coloured with ${words} from outside the key; ` +
+              `it pulls home all the same.`,
+          }
     }
   }
 
@@ -259,7 +401,71 @@ export function analyze(p: Progression): ChordAnalysis[] {
       })
     }
   })
+  explainInContext(out, p.key)
   return out
+}
+
+const bassOf = (symbol: ChordSymbol): SpelledNote => symbol.bass ?? symbol.root
+const stepsDown = (from: number, to: number) => (from - to + 12) % 12
+const SYMMETRIC = new Set(['dim7', 'aug'])
+
+/**
+ * The second look, once every chord has neighbours.
+ *
+ * A dominant aimed somewhere either goes there or does not, and the chart
+ * knows which. A chromatic chord sitting a half step between its neighbours in
+ * the bass is a passing chord, whatever it is called - that is the whole
+ * story of the A9 - Abm7b5 - G6 run in Shadow Waltz. And a chord that is
+ * nothing in this key may be a familiar chord under another name, which is
+ * worth saying.
+ */
+function explainInContext(items: ChordAnalysis[], k: Key): void {
+  const spell = spellerFor(k)
+  items.forEach((item, i) => {
+    const previous = items[i - 1]
+    const next = items[i + 1]
+
+    if (item.targets !== undefined && next) {
+      const lands = next.alteration === 0 && next.degree === item.targets
+      item.explanation += lands
+        ? ' And the chart goes there next.'
+        : ` Here the chart goes to ${chordName(next.symbol)} instead: the pull is set up, then sidestepped.`
+    }
+
+    if (item.role === 'chromatic' || item.role === 'borrowed') {
+      const here = toPitchClass(bassOf(item.symbol))
+      const before = previous ? toPitchClass(bassOf(previous.symbol)) : undefined
+      const after = next ? toPitchClass(bassOf(next.symbol)) : undefined
+      const down =
+        before !== undefined && after !== undefined &&
+        stepsDown(before, here) === 1 && stepsDown(here, after) === 1
+      const up =
+        before !== undefined && after !== undefined &&
+        stepsDown(here, before) === 1 && stepsDown(after, here) === 1
+      if (down || up) {
+        item.role = 'passing'
+        item.explanation =
+          `${item.roman} - a passing chord: the bass walks ${down ? 'down' : 'up'} by half steps, ` +
+          `${noteName(bassOf(previous!.symbol))} to ${noteName(bassOf(item.symbol))} to ` +
+          `${noteName(bassOf(next!.symbol))}.`
+      } else if (after !== undefined && item.role === 'chromatic') {
+        const from =
+          stepsDown(here, after) === 1 ? 'above' : stepsDown(after, here) === 1 ? 'below' : null
+        if (from) {
+          item.explanation =
+            `${item.roman} - a chromatic approach chord: it leans into the ` +
+            `${chordName(next!.symbol)} that follows from a half step ${from}.`
+        }
+      }
+    }
+
+    if ((item.role === 'chromatic' || item.role === 'passing') && !SYMMETRIC.has(item.symbol.quality ?? '')) {
+      const alias = enharmonicAliases(item.symbol, spell)[0]
+      if (alias) {
+        item.explanation += ` The same notes as ${chordName(alias)} (${romanNumeral(alias, k)}).`
+      }
+    }
+  })
 }
 
 /* Cadences ----------------------------------------------------------------- */

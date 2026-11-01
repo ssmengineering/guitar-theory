@@ -43,13 +43,27 @@ view, and Fix the boxes selected, split, merged and renumbered a box, with the
 result autosaved to `song.json`. Fourteen Python tests cover the detector on
 drawn staves; eight app tests cover the box arithmetic.
 
+Stage 5, first cluster, done the same day: `parseChord` reads the altered and
+extended dominants (`7#5`, `9#5`, `7b5`, `11`, `7alt`, `9sus4`, `madd9`) and
+the handwritten spellings (`A9 5+`, `E7+`, `C7(b9)`, `Am7-5`, `C2`, `G69`);
+in-key colour chords read as diatonic with the colour named; a minor key's
+V7 is its dominant; an altered V stays the dominant with its altered tones
+traced; IV7 in a major key is the blues colour; a chromatic chord a half step
+between its neighbours in the bass is a passing chord; a chord that is nothing
+in the key gets its enharmonic other name (Abm7b5 is Bm6); and a secondary
+dominant or tritone sub is told whether the chart went where it points. The
+whole Shadow Waltz chart and the Dark Eyes intro now read correctly;
+`tests/charts.test.ts` holds those charts as the engine's test cases. Left for
+later clusters: slash-chord bass lines over diatonic chords, a longer look at
+cadences in 3/4, and chord-melody readings.
+
 Not yet exercised: the native folder picker itself (the import code path was
 driven with an OPFS directory handle instead), Safari and the iPad, listening
 tests of stretch quality at 50 percent, tapping accuracy by ear, the `-Gpu`
 setup, `htdemucs_6s` through the tool, a re-import over a package with typed
 charts (the kept-fields logic is tested, not run), and drawing a box by hand
 with a real pointer. Every stage of the plan is now built; what remains is
-Stage 5, the engine work, and the Stage 6 options.
+the rest of Stage 5 and the Stage 6 options.
 
 ## What it is
 

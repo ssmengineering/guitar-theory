@@ -378,9 +378,22 @@ its numbers can be printed anywhere.
 ```
 
 `analyze()` sorts every chord into diatonic, secondary dominant, tritone
-substitute, borrowed, or plainly chromatic, and says why. `findCadences()` picks
-out ii-V-I, ii-V, V-I, IV-I and the deceptive V-vi — once you can see ii-V-I you
-see it everywhere, which is most of the reason to look.
+substitute, borrowed, passing, or plainly chromatic, and says why. Diatonic
+includes the colour chords whose every note is in the key, read as the plain
+chord plus what was added: `G6` in D is "the IV with the 6th added", `A9` is
+"the V7 with the 9th on top". A minor key's V7 is its dominant, not a
+borrowing. An altered dominant on the V is still the dominant, with its
+altered tones named and traced to the parallel minor. A chord that is nothing
+in the key but sits a half step between its neighbours in the bass is a
+passing chord, however it is spelled - `A9 - Abm7b5 - G6 - D` is a bass line
+walking down - and a chord that is nothing in the key gets its other name when
+it has one: Abm7b5 is Bm6. A dominant aimed somewhere is told whether the chart
+went there next. `findCadences()` picks out ii-V-I, ii-V, V-I, IV-I and the
+deceptive V-vi — once you can see ii-V-I you see it everywhere, which is most
+of the reason to look.
+
+`parseChord()` reads the spellings handwritten charts use as well as the tidy
+ones: `A9 5+`, `E7+`, `C7(b9)`, `Am7-5`, `C2`, `G69`, `Em(maj7)`.
 
 ### Numbering runs off the letter, not the sound
 
