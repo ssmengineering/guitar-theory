@@ -676,8 +676,12 @@ helpers leaves the worklet calling a helper that is not in its scope.
 
 ## Not built yet
 
-The engine work the Chet charts ask for - altered dominants, colour chords
-read as diatonic, bass lines through inversions - and the later options: a
-generated rhythm section for the solo-guitar records, importing a whole album
-in one command, the iPad. All of it is in `docs/song-mode-plan.md`, with where
-each stage stands.
+Chord-melody readings, which need the melody note and not just the symbol.
+A rhythm section rebuilt with sampled instruments (an upright bass learned
+from the record's own bass stem, brushes and piano generated from the chart)
+rendered in the app beside the real stems, so the backing is clean and slows
+down cleanly. Reading the handwritten tab into notes, trained on the player's
+own corrections, so the engine knows the thumb line and the melody and can
+infer the chords of the choruses that carry no names. Importing a whole album
+in one command, the iPad. All of it is in `docs/song-mode-plan.md`, with
+where each stage stands.

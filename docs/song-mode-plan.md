@@ -3,6 +3,10 @@
 Drafted 2026-10-31. This is the working plan for the feature; update it as
 stages land rather than writing a second one.
 
+Status, 2026-11-01: Stages 1 to 5 and the in-app import are built and on
+main. Stage 6 (a rhythm section rebuilt with sampled instruments) and Stage 7
+(reading the tab) are drafted below and not started.
+
 Status, 2026-10-31: Stages 2 and 3 are built and verified in Chrome against
 the hand-assembled Ochi Chornya package (`songs/ochi-chornya/`, git-ignored).
 
@@ -112,15 +116,20 @@ These were established before writing this, and the design follows from them.
 
 - **The tabs are handwritten PDF scans.** Six-line tab, beat stems only, no
   durations, chord names written above the first chorus and nowhere else. There
-  is no symbolic data to extract, so the chart is typed per chorus and the scan
-  is displayed, not transcribed.
+  is no symbolic data to extract, so in v1 the chart is typed per chorus and
+  the scan is displayed, not transcribed. Stage 7 sets out to read it: one
+  writer with a consistent hand makes that a small recognition problem rather
+  than general music OCR.
 - **The records are sparse.** Bass, brushed drums, sometimes piano, sometimes
   nothing but the guitar. On Ochi Chornya (1955) Demucs split bass and drums
   from the guitar with the backing sitting about 30 dB under the guitar in the
   solo intro, and the thumb bass stayed in the guitar stem. Solo-guitar tracks
-  have nothing to extract; for those the tool is the slowed original with loops.
+  have nothing to extract; in v1 the tool for those is the slowed original with
+  loops, and Stage 6 gives them a rhythm section built from the chart.
 - **The source files are poor.** The test rip was 56 kbps at 22 kHz. Re-rip from
-  CD where possible; everything downstream improves.
+  CD where possible; everything downstream improves. The records themselves
+  are vinyl transfers, so even a clean rip has crackle and a narrow band; that
+  is why Stage 6 rebuilds the rhythm section rather than only cleaning it.
 - **The app is a static, public, offline PWA with no backend.** Nothing
   copyrighted can go in the repo or the deployed site. Song audio and scans
   live on the user's device only.
@@ -135,7 +144,8 @@ These were established before writing this, and the design follows from them.
 Made now so they do not get re-argued later.
 
 1. **Real stems, no synthesis in v1.** The backing is the record minus the
-   guitar. A generated rhythm section for solo tracks is a Stage 6 option.
+   guitar. Stage 6 adds a sampled rhythm section as extra stems beside the
+   real ones, never instead of them; the record's stems stay in the mixer.
 2. **Import is a local Python command, run once per song.** It writes a
    self-contained song package folder. The browser never runs a model.
 3. **Packages are loaded from disk into the browser** with a folder picker or
@@ -311,12 +321,151 @@ Waltz:
 
 Estimate: ongoing, about one session per cluster.
 
-### Stage 6: Later options
+### Stage 6: A rhythm section that sounds real
 
-A generated rhythm section for solo-guitar tracks, built from the chart with
-`hands/bassline.ts` and a brush loop through a small sampler. Vision-assisted
-transcription of a scan into alphaTex rendered with alphaTab, for the songs you
-are deepest in. Audio-only chord detection for songs without a tab. The iPad.
+Drafted 2026-11-01. Done when a package carries MIDI tracks for bass, drums
+and, where the record has one, piano; the app renders them with sampled
+instruments into stems that sit in the mixer beside the record's own stems;
+tempo and loops work on them unchanged; and a solo-guitar track such as Minute
+Waltz gets a bass and brushes built from its chart.
+
+Why: the records are vinyl transfers, scratchy and narrow, and the backing
+track inherits that. The chart, the bar map and the separated stems are enough
+to rebuild the rhythm section cleanly, and the record's own bass line can be
+learned from its stem rather than invented. The result sounds like a clean
+rhythm section playing the record's arrangement, not like the record.
+
+Decisions, made now:
+
+- **The MIDI is the asset; audio is a rendering.** Note lists live in
+  `song.json`; the app renders them when the song opens, so changing an
+  instrument or a drum feel is a re-render in seconds, not a re-import.
+- **Real and rendered stems coexist.** Real bass against MIDI bass on two
+  faders; mute the scratchy drums and keep the generated brushes.
+- **General MIDI sounds are out.** Only sampled instruments good enough to
+  practise with. Candidates below were chosen for sound and licence.
+- **Samples never enter the repo.** The helper downloads the open sets once
+  into `tools/samples/` (git-ignored) and serves them; the public site fetches
+  the same public-domain sets from where they are hosted. Anything bought for
+  personal use stays in `tools/samples/` and nowhere else.
+- **Rendering is in the browser, not in Python.** An `OfflineAudioContext`
+  render through a small sampler keeps the import tool free of native synth
+  binaries and lets the user swap instruments without re-importing.
+
+**6a. Instruments and the sampler.** A listening test comes before any
+generator, because the sound decides whether the stage is worth finishing.
+
+- Upright bass: D. Smolken's double bass sets, CC0: the 1958 Rubner bass
+  (arco, pizz) and Meatbass (pizz with four velocity layers and round robins).
+  Both are already mapped as SFZ and as web manifests in danigb's `samples`
+  collection, served as ogg and mp3.
+- Piano: Splendid Grand Piano (public domain, Steinway, four velocity layers)
+  first; Salamander Grand (CC-BY 3.0, Yamaha C5, sixteen layers, up to 1.9 GB)
+  if the sound is worth the size.
+- Drums: no openly licensed brush kit was found. First attempt: a brushed
+  snare built from shaped noise (the swish and the tap) over CC0 kit pieces
+  from the Versilian Community Sample Library (snares, bass drums, hi-hat,
+  suspended cymbals). If that does not convince, a small commercial brush pack
+  bought for personal use and kept locally.
+- Rhythm guitar: not now.
+- `src/audio/sampler.ts`: a sampler for the SFZ subset these sets use (key and
+  velocity ranges, pitch keycentre, round robin, release), reading the
+  `.websfz.json` manifests; `renderTrack(notes, instrument) -> AudioBuffer`;
+  `engine.load` accepts rendered buffers as stems alongside decoded files.
+- Done when a hand-written note list plays through the bass and the piano in
+  the app and the user says it sounds right.
+
+**6b. Learn the bass line from the record.** In the import tool: pitch-track
+the bass stem (it is close to monophonic; librosa's `pyin` is already in the
+environment), turn frames into note events, quantise onsets to the beat grid,
+and snap each pitch to the chord tones of the bar it falls in (roots, fifths,
+approach tones), with octave errors fixed by range and ghost notes dropped by
+length and energy. The track is stored as `midi` notes with `source: "record"`
+and nothing is lost: the user can hear the real bass stem against it. Spotify's
+Basic Pitch (Apache 2.0, ONNX on Windows) is the polyphonic upgrade for piano
+if it installs under Python 3.12; its README lists 3.7 to 3.11, so try it in a
+scratch environment first.
+
+**6c. Generate what cannot be learned.** Pure `src/song/` code with tests:
+
+- Drums: a feel per section chosen from a short list (brushes swing, train
+  beat, two-beat country, waltz, none), locked to the bar map, an optional fill
+  into a new section. Brushes are a continuous swish on a 1950s rip and are not
+  worth transcribing.
+- Bass from the chart, for solo tracks and as the fallback: root and fifth in
+  two-feel, an approach note into each chord change, a walking option; Stage 7
+  later feeds it the thumb line Chet actually played.
+- Piano comping from the chart: shell and closed voicings in a mid register
+  with a rhythm pattern per feel. Transcribing the record's piano through the
+  separation bleed is a later experiment.
+
+**6d. Mixer and package.** `format: 2` adds
+`midi: [{ id, instrument, role, source, notes: [[beat, length, pitch, velocity]] }]`
+with times in beats so the notes follow the bar map when it is edited. The
+mixer shows rendered stems with their instrument and a "render again" when an
+instrument or feel changes. A later option is live sampler playback against
+the stretch node's clock, which would slow down with no artefacts at all.
+
+Order: 6a, then 6b and 6d together so the transcribed bass is heard through
+the sampler, then 6c. Estimate: 4 to 6 sessions. The open question is 6a: if
+no brush sound convinces, drums stay as the record's stem and the stage still
+pays off on bass and piano.
+
+### Stage 7: Reading the tab
+
+Drafted 2026-11-01. Done when a tab page's numbers are read into notes per
+string and beat, bar by bar; mistakes are corrected on the page in the app and
+the corrections train the reader; and the engine uses the notes: the thumb
+bass line drives the generated bass, each melody note is explained against its
+chord, and bars without chord names get a chord inferred from what is played.
+
+Why it is tractable: one writer with a consistent hand; the staves are already
+found as rows of dashes and the bar lines as strokes; the beat stems are drawn;
+the vocabulary is the digits 0 to about 17 plus a few dozen chord names. This
+is a small recognition problem trained on the user's own corrections, not
+general handwritten music OCR.
+
+- **Geometry, in `scan.py`.** Within a system, remove the staff strokes and
+  take the connected components. Tall thin marks below the staff are beat
+  stems; digit-height marks on the lines are fret numbers, merged into
+  two-digit numbers when adjacent at one height; marks above the staff are
+  chord names; the rest (ties, slides, repeat dots) is ignored at first. The
+  string is the nearest line; the beat is the nearest stem within tolerance,
+  otherwise the note is off the beat between two stems.
+- **Classification.** A small convolutional net over digit crops, trained on
+  labelled crops saved from the user's corrections in
+  `tools/songimport/.training/` (git-ignored); PyTorch is already in the
+  environment and a model this size retrains in seconds. Two ways to start
+  before there are labels: a generic handwritten-digit model corrected by hand
+  on the first pages, or a vision model reading cropped systems into
+  structured notes through the Claude API (`claude-opus-5-5`, the Python
+  SDK). The second is opt-in because the pages leave the machine; a page is a
+  few cents. Chord names above the staff are read the same way, against the
+  chart's vocabulary.
+- **In the package.** `tab: { bars: [{ bar, notes: [{ string, fret, beat,
+  sub }] }] }`, format 2, with `sub` 0 on the beat and 1 between beats.
+- **In the app.** `SongScan` gains Read this page and an overlay of the read
+  numbers on the scan; a tap corrects one and the crop goes to the training
+  folder; a bar can be marked as read correctly.
+- **In the engine, `src/song/tabnotes.ts`.** Pitches from string and fret
+  through the tuning; the thumb line is the lowest notes on the beats, the
+  melody the highest; `inferChord(barNotes, key, previous)` scores candidate
+  chords by the tones present, the bass note on the downbeat and the key;
+  `explainMelody` reuses the analysis to call each melody note a chord tone,
+  colour, approach or passing note. This is the "understand what is happening"
+  part, and it is pure engine work with tests built from real pages.
+
+Honest limits: the tab has no durations, so rhythm is beats and off-beats;
+slurs, bends and harmonics are not read; later choruses carry no chord names,
+which is exactly what the inference is for. The recognizer's accuracy is the
+open question: measure it on two pages before building the rest.
+
+Estimate: 5 to 8 sessions.
+
+### Later options
+
+Importing a whole album in one command. Audio-only chord detection for songs
+without a tab. A CUDA build of PyTorch. The iPad.
 
 ## Order of work
 
@@ -327,6 +476,9 @@ are deepest in. Audio-only chord detection for songs without a tab. The iPad.
 3. **Stage 1** so the rest of the library is cheap to add.
 4. **Stage 4**, then Stage 6 as wanted.
 5. **Stage 5** threaded through all of it, one cluster at a time.
+6. **Stage 6** from 6a: the instruments decide whether the rest is worth it.
+7. **Stage 7** after 6a, because its first payoff is the thumb line feeding
+   the generated bass; its engine half can run alongside Stage 6.
 
 | Stage | Sessions |
 |---|---|
@@ -335,6 +487,8 @@ are deepest in. Audio-only chord detection for songs without a tab. The iPad.
 | 3 Chart, bars, HUD | 3 to 4 |
 | 4 Scan view | 2 to 3 |
 | 5 Engine work | ongoing |
+| 6 Sampled rhythm section | 4 to 6 |
+| 7 Reading the tab | 5 to 8 |
 
 ## Risks and open questions
 
