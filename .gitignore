@@ -7,6 +7,7 @@ dev-dist/
 .vercel
 songs/
 tools/songimport/.venv/
+tools/songimport/.python/
 tools/songimport/.models/
 __pycache__/
 *.egg-info/

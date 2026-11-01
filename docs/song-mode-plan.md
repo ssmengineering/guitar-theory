@@ -80,6 +80,15 @@ rhythm section. Under the helper the service worker is not registered (its
 script fetch fails on this server, and offline caching means nothing on a
 local machine), so the public site keeps the worker and the helper does not.
 
+The first double-click of the start script failed on the user's side with "No
+Python at ...AppData\Roaming\uv\python...": the interpreter uv had downloaded
+there during setup existed only for the shell that ran the setup, not for a
+process started from Explorer. The whole toolchain now lives under
+`tools/songimport` (`.python` holds the interpreter, `.venv` points at it,
+`.models` the separator weights), `setup.ps1` installs there and repairs a
+venv whose Python has gone, and the start script runs the setup itself when
+the tool is missing or broken instead of showing the launcher's message.
+
 Not yet exercised: the native folder picker itself (the import code path was
 driven with an OPFS directory handle instead), Safari and the iPad, listening
 tests of stretch quality at 50 percent, tapping accuracy by ear, the `-Gpu`

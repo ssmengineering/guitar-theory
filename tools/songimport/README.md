@@ -13,6 +13,10 @@ track paired with its tab by year, title and track number, and an Import
 button. The import runs in the background with its progress on screen, and
 the song opens when it is done. Leave the window open while you play.
 
+The first time on a computer, the start script builds the import environment
+itself before starting (it needs a Python 3 on the PATH and takes about ten
+minutes); after that it starts straight away.
+
 The helper reads `serve.json` beside this README for the two library
 folders (`serve.example.json` shows the shape), serves the packages in the
 repo's `songs` folder, and serves the built app from `dist`. After pulling
@@ -28,14 +32,19 @@ lists the flags for other folders and ports.
 powershell -ExecutionPolicy Bypass -File tools\songimport\setup.ps1
 ```
 
-That builds `tools\songimport\.venv` with its own Python 3.12 and everything
-pinned in `pyproject.toml`, then runs `songimport --check`. Add `-Gpu` to
-install the CUDA build of PyTorch (about 3 GB) and separate on the graphics
-card in seconds rather than minutes.
+That downloads a Python 3.12 into `tools\songimport\.python`, builds
+`tools\songimport\.venv` from it with everything pinned in `pyproject.toml`,
+then runs `songimport --check`. Add `-Gpu` to install the CUDA build of
+PyTorch (about 3 GB) and separate on the graphics card in seconds rather than
+minutes.
 
 The separator insists on an `ffmpeg` binary even though none is needed here;
 the first run copies the one bundled with `imageio-ffmpeg` into the
-environment. Nothing outside `.venv` is installed.
+environment. Everything the tool needs lives under `tools\songimport`
+(`.python`, `.venv`, `.models`) and nothing elsewhere on the machine, so the
+start script works from any shell or a double-click. Running the setup again
+is safe: it repairs an environment whose Python has gone missing and
+otherwise only refreshes the packages.
 
 ## Importing
 
