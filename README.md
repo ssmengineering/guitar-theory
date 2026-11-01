@@ -628,6 +628,16 @@ name, the number, the numeral, the role and the engine's one-line reason,
 with the fretboard recoloured by the chord's degrees. Edits save themselves
 a second or two later, back to OPFS or to the dev folder.
 
+**The page** shows the scanned tab itself, with the bar the record is in lit
+up and the page scrolling to keep it in view; a click on any bar jumps the
+record there. The import tool draws the boxes by finding the bar lines on the
+scan (`tools/songimport/songimport/scan.py`: staves as six rows of dashes at
+one spacing, bar lines as strokes that cross the whole staff and stop at the
+bottom of it). Where it is wrong, **Fix the boxes** renumbers from a box,
+splits one, merges two, removes a sliver, draws one by hand, or marks a box
+as a second bar under a repeat; `src/song/scan.ts` keeps the numbering
+straight through the pages after every change.
+
 The player and the open song live in `src/ui/songSession.ts`, outside any
 screen, so the record keeps playing when you switch tabs - and the Improv
 screen has a **follow** switch that takes its chart, key and current chord
@@ -640,8 +650,8 @@ helpers leaves the worklet calling a helper that is not in its scope.
 
 ## Not built yet
 
-The scan view that highlights the bar on the handwritten page; the pages are
-already in the package. The engine work the Chet charts ask for - altered
-dominants, colour chords read as diatonic, bass lines through inversions - is
-listed stage by stage in `docs/song-mode-plan.md`, with where each stage
-stands.
+The engine work the Chet charts ask for - altered dominants, colour chords
+read as diatonic, bass lines through inversions - and the later options: a
+generated rhythm section for the solo-guitar records, importing a whole album
+in one command, the iPad. All of it is in `docs/song-mode-plan.md`, with where
+each stage stands.

@@ -31,6 +31,7 @@ import { beatInterval, formatTime, snapToBeat } from '../song/model.js'
 import SongBars from './SongBars.js'
 import SongChart from './SongChart.js'
 import SongHud from './SongHud.js'
+import SongScan from './SongScan.js'
 import {
   closeSong,
   loadSong,
@@ -396,6 +397,21 @@ export default function Song() {
                 duration={duration}
                 onSeek={seek}
               />
+
+              {pkg.scan && pkg.scan.pages.length > 0 ? (
+                <details className="editor" open>
+                  <summary>The page</summary>
+                  <SongScan
+                    source={source}
+                    pkg={pkg}
+                    position={position}
+                    duration={duration}
+                    playing={playing}
+                    onSeek={seek}
+                    onChange={updatePackage}
+                  />
+                </details>
+              ) : null}
 
               <div className="controls">
                 <label className="checkbox">

@@ -87,6 +87,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--keep-work", action="store_true", help="leave the .work folder behind")
     parser.add_argument("--models-dir", type=Path, help="where separator models are cached")
     parser.add_argument("--dpi", type=int, default=110, help="tab page rendering (default 110)")
+    parser.add_argument(
+        "--no-bars", action="store_true", help="do not look for bar lines on the tab pages"
+    )
+    parser.add_argument(
+        "--scan-preview",
+        action="store_true",
+        help="also write scan/pN.boxes.png with the found bars drawn on, to check by eye",
+    )
     parser.add_argument("--check", action="store_true", help="report the environment and exit")
     parser.add_argument("--version", action="version", version=f"songimport {__version__}")
     return parser
@@ -120,6 +128,8 @@ def main(argv: list[str] | None = None) -> int:
         skip_separation=args.skip_separation,
         keep_work=args.keep_work,
         dpi=args.dpi,
+        detect_bars=not args.no_bars,
+        scan_preview=args.scan_preview,
     )
     if args.models_dir is not None:
         options.models_dir = args.models_dir
@@ -140,7 +150,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  dropped {name} ({dbfs} dBFS, silent)")
     print(f"  {len(song['beatCandidates'])} beat guesses, about {song.get('tempoBpm')} bpm")
     if song.get("scan"):
-        print(f"  {len(song['scan']['pages'])} tab pages")
+        pages = song["scan"]["pages"]
+        bars = sum(len(p.get("boxes", [])) for p in pages)
+        print(f"  {len(pages)} tab pages, {bars} bars marked on them")
     if result.kept:
         print(f"  kept from before: {', '.join(result.kept)}")
     print("Open it on the Song screen: it is in the dev folder list, or import the folder.")

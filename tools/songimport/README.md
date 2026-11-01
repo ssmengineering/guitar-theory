@@ -36,7 +36,18 @@ Options worth knowing:
 | `--key Dm` | the key, so the chart analysis is right from the start |
 | `--fresh` | discard an existing package's key, chart, sections and bars |
 | `--skip-separation` | keep the stems; redo the beats, pages and `song.json` |
+| `--scan-preview` | also write `scan/pN.boxes.png` with the found bars drawn on, to check by eye |
+| `--no-bars` | do not look for bar lines on the pages |
 | `--out DIR` | where packages go (default: the repo's git-ignored `songs/`) |
+
+The bar boxes come from `scan.py`: it finds each staff as six rows of short
+horizontal strokes at one spacing (only the top line of a hand-ruled tab staff
+is continuous; the rest are dashes between the numbers), then the bar lines as
+vertical strokes that reach both the top and bottom line and stop there. Beat
+stems drawn through the staff are told apart by the tail they leave below it,
+so a hand that draws its bar lines as long as its stems will lose some; fix
+those in the app with **Fix the boxes**. Pages that already have boxes keep
+them on a re-run.
 
 Re-running on a song that already has a package keeps what you typed in the
 app (key, beats per bar, charts, sections, bars, scan boxes) and regenerates

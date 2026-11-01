@@ -70,6 +70,10 @@ class ImportOptions:
     fresh: bool = False
     skip_separation: bool = False
     keep_work: bool = False
+    # Find the bars on the tab pages (pages that already have boxes keep them).
+    detect_bars: bool = True
+    # Also write scan/pN.boxes.png with the boxes drawn on, to check by eye.
+    scan_preview: bool = False
     models_dir: Path = field(
         default_factory=lambda: Path(__file__).resolve().parents[1] / ".models"
     )
@@ -186,6 +190,7 @@ def build_song_json(
     beat_candidates: list[float],
     scan_pages: list[str],
     kept: dict,
+    detected_boxes: dict[str, list[dict]] | None = None,
 ) -> dict:
     song: dict = {"format": SONG_FORMAT, "title": title}
     if artist:
@@ -215,10 +220,15 @@ def build_song_json(
     song["sections"] = kept.get("sections", [])
     song["charts"] = kept.get("charts", {})
     if scan_pages:
-        boxes = kept.get("scanBoxes", {})
+        kept_boxes = kept.get("scanBoxes", {})
+        found = detected_boxes or {}
         song["scan"] = {
             "pages": [
-                {"image": f"scan/{name}", "boxes": boxes.get(f"scan/{name}", [])}
+                {
+                    "image": f"scan/{name}",
+                    # The player's own boxes win; the detector only fills empty pages.
+                    "boxes": kept_boxes.get(f"scan/{name}") or found.get(name, []),
+                }
                 for name in scan_pages
             ]
         }
@@ -457,6 +467,27 @@ def run_import(options: ImportOptions, log: Log = print) -> ImportResult:
             Path(p["image"]).name for p in existing["scan"].get("pages", []) if "image" in p
         ]
 
+    detected: dict[str, list[dict]] = {}
+    if scan_pages and options.detect_bars:
+        from .scan import detect_pages, write_preview
+
+        kept_boxes = kept.get("scanBoxes", {})
+        todo = [package / "scan" / name for name in scan_pages if f"scan/{name}" not in kept_boxes]
+        todo = [p for p in todo if p.exists()]
+        if todo:
+            found = detect_pages(todo)
+            for name, boxes in found.items():
+                detected[name] = [b.as_json() for b in boxes]
+                if options.scan_preview:
+                    write_preview(package / "scan" / name, boxes, package / "scan" / f"{Path(name).stem}.boxes.png")
+            counts = ", ".join(f"{name} {len(boxes)}" for name, boxes in found.items())
+            step(
+                f"found {sum(len(b) for b in found.values())} bars on the pages ({counts})"
+                + ("; previews in scan/*.boxes.png" if options.scan_preview else "")
+            )
+        if len(todo) < len(scan_pages):
+            step(f"kept the boxes already marked on {len(scan_pages) - len(todo)} page(s)")
+
     source = {"file": track.name, "separator": options.model}
     if tags["sample_rate"]:
         source["sampleRate"] = tags["sample_rate"]
@@ -476,6 +507,7 @@ def run_import(options: ImportOptions, log: Log = print) -> ImportResult:
         beat_candidates=beats,
         scan_pages=scan_pages,
         kept=kept,
+        detected_boxes=detected,
     )
     song_json_path.write_text(json.dumps(song, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     step("wrote song.json")

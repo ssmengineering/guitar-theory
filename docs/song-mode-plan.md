@@ -33,12 +33,23 @@ rhythm section, four tab pages, `song.json`. A `--skip-separation` re-run
 regenerated the pages in seconds. Nine unit tests cover the pure parts: the
 slug (the same rule as the app), stem choice, kept fields, `song.json`.
 
+Stage 4 verified: the detector (`tools/songimport/songimport/scan.py`) finds
+every staff on both test tabs and the right bars on Shadow Waltz throughout;
+on Dark Eyes it loses the bars where the writer drew bar lines as long as the
+beat stems, which the editor covers. 148 boxes on Ochi Chornya's four pages
+in four seconds. In the app, the page shows with its boxes, the lit box
+follows a 61-bar map as the record plays, the container scrolls to keep it in
+view, and Fix the boxes selected, split, merged and renumbered a box, with the
+result autosaved to `song.json`. Fourteen Python tests cover the detector on
+drawn staves; eight app tests cover the box arithmetic.
+
 Not yet exercised: the native folder picker itself (the import code path was
 driven with an OPFS directory handle instead), Safari and the iPad, listening
 tests of stretch quality at 50 percent, tapping accuracy by ear, the `-Gpu`
-setup, `htdemucs_6s` through the tool, and a re-import over a package with
-typed charts (the kept-fields logic is tested, not run). The scan view
-(Stage 4) is not started.
+setup, `htdemucs_6s` through the tool, a re-import over a package with typed
+charts (the kept-fields logic is tested, not run), and drawing a box by hand
+with a real pointer. Every stage of the plan is now built; what remains is
+Stage 5, the engine work, and the Stage 6 options.
 
 ## What it is
 
